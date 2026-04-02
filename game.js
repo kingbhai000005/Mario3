@@ -162,6 +162,7 @@ const GameState = {
     rgbHue: 0,
     lastTime: 0,
     gameActive: false,
+    zoom: 1,
 
     // UI variables
     selectedHero: 'Classic',
@@ -260,6 +261,13 @@ function createEnemy(type, x, y, platformWidth, platformX) {
         speed = 120;
     }
 
+    const range = type === ENEMY_TYPES.FLYER
+        ? (platformWidth > 0 ? Math.max(100, platformWidth - 20) : 120)
+        : Math.max(80, platformWidth - 40);
+
+    const minXFinal = x - range;
+    const maxXFinal = x + range;
+
     return {
         x: x,
         y: y,
@@ -267,7 +275,9 @@ function createEnemy(type, x, y, platformWidth, platformX) {
         w: w,
         h: h,
         startX: x,
-        range: Math.max(80, platformWidth - 40),
+        minX: minXFinal,
+        maxX: maxXFinal,
+        range: range,
         speed: speed,
         alive: true,
         type: type,
@@ -509,6 +519,15 @@ function resetGame() {
     GameState.canvas.width = Math.floor(GameState.width * dpr);
     GameState.canvas.height = Math.floor(GameState.height * dpr);
     GameState.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    // Scale viewport for easier mobile visibility
+    if (GameState.width < 600) {
+        GameState.zoom = 0.6;
+    } else if (GameState.width < 900) {
+        GameState.zoom = 0.75;
+    } else {
+        GameState.zoom = 1;
+    }
 
     GameState.score = 0;
     GameState.cameraX = 0;
@@ -801,20 +820,41 @@ function updateEnemies(dt) {
             en.hoverAngle += dt * 2.5;
             en.y = en.baseY + Math.sin(en.hoverAngle) * 15;
             en.x += en.speed * dt;
-        } else if (en.type === ENEMY_TYPES.RUNNER) {
-            const distToPlayer = Math.abs(en.x - GameState.player.x);
-            if (distToPlayer < 220) {
-                en.speed = en.speed > 0 ? 420 : -420;
-            } else {
-                en.speed = en.speed > 0 ? 260 : -260;
+
+            if (en.x < en.minX) {
+                en.x = en.minX;
+                en.speed = Math.abs(en.speed);
+            } else if (en.x > en.maxX) {
+                en.x = en.maxX;
+                en.speed = -Math.abs(en.speed);
             }
-            en.x += en.speed * dt;
         } else {
+            // Ground enemy stays on platform y and stays within platform bounds
+            en.y = en.baseY;
+
+            if (en.type === ENEMY_TYPES.RUNNER) {
+                const distToPlayer = Math.abs(en.x - GameState.player.x);
+                if (distToPlayer < 220) {
+                    en.speed = en.speed > 0 ? 420 : -420;
+                } else {
+                    en.speed = en.speed > 0 ? 260 : -260;
+                }
+            }
+
             en.x += en.speed * dt;
+
+            if (en.x < en.minX) {
+                en.x = en.minX;
+                en.speed = Math.abs(en.speed);
+            } else if (en.x > en.maxX) {
+                en.x = en.maxX;
+                en.speed = -Math.abs(en.speed);
+            }
         }
 
-        if (en.type !== ENEMY_TYPES.FLYER && Math.abs(en.x - en.startX) > en.range) {
-            en.speed *= -1;
+        // Ensure non-flyer stays on platform in case it deviated
+        if (en.type !== ENEMY_TYPES.FLYER) {
+            en.y = en.baseY;
         }
 
         // Flyer bomb drop
@@ -867,7 +907,12 @@ function updateScore(dt) {
 }
 
 function updateCamera() {
-    GameState.cameraX += (GameState.player.x - GameState.cameraX - GameState.width * 0.35) * 0.1;
+    const visibleWidth = GameState.width / GameState.zoom;
+    const padding = visibleWidth * 0.35;
+    GameState.cameraX += (GameState.player.x - GameState.cameraX - padding) * 0.1;
+
+    // enforce left border
+    if (GameState.cameraX < 0) GameState.cameraX = 0;
 }
 
 function endGame() {
@@ -945,6 +990,9 @@ function gameLoop(timestamp) {
 function draw() {
     GameState.ctx.clearRect(0, 0, GameState.width, GameState.height);
     GameState.ctx.save();
+
+    // Zoom out for smaller screens while keeping world coordinate logic the same
+    GameState.ctx.scale(GameState.zoom, GameState.zoom);
     GameState.ctx.translate(-GameState.cameraX, 0);
 
     drawPlatforms();
