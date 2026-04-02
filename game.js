@@ -163,6 +163,7 @@ const GameState = {
     lastTime: 0,
     gameActive: false,
     zoom: 1,
+    animationFrameId: null,
 
     // UI variables
     selectedHero: 'Classic',
@@ -400,13 +401,13 @@ function renderHeroSelection() {
         const isLocked = GameState.hiScore < h.req;
         const card = document.createElement('div');
         card.className = `card ${isLocked ? 'locked' : ''} ${GameState.selectedHero === h.name ? 'selected' : ''}`;
-        card.style.width = '180px';
-        card.style.minHeight = '95px';
+        card.style.width = '160px';
+        card.style.minHeight = '80px';
         card.style.display = 'flex';
         card.style.flexDirection = 'column';
         card.style.justifyContent = 'space-between';
-        card.style.padding = '12px';
-        card.innerHTML = `<div style="display:flex; align-items:center; gap:10px;"><div style="background:${h.color}; width:16px; height:16px; border-radius:50%;"></div><strong>${h.name}</strong></div><small style="color:#ccc;">${h.power}</small><div style="font-size:11px;color:#bff;">${isLocked ? 'LOCKED 🔒' : 'Ready'}</div>`;
+        card.style.padding = '10px';
+        card.innerHTML = `<div style="display:flex; align-items:center; gap:8px;"><div style="font-size:24px; line-height:1;">${h.icon}</div><div style="flex:1;"><div style="font-size:12px; font-weight:bold; margin-bottom:2px;">${h.name}</div><small style="color:#ccc; font-size:10px;">${h.power}</small></div></div><div style="font-size:10px;color:#bff; margin-top:4px;">${isLocked ? 'LOCKED 🔒' : 'Ready'}</div>`;
 
         if (!isLocked) {
             card.onclick = () => {
@@ -422,25 +423,40 @@ function renderHeroSelection() {
 
 function toggleEnemyInfo() {
     GameState.showEnemyInfo = !GameState.showEnemyInfo;
-    const container = document.getElementById('enemyInfoBox');
+    const modal = document.getElementById('enemyInfoModal');
     const btn = document.getElementById('toggleEnemyInfoBtn');
-    if (!container || !btn) return;
-    container.style.display = GameState.showEnemyInfo ? 'block' : 'none';
-    btn.textContent = GameState.showEnemyInfo ? 'Hide Enemy Details' : 'Show Enemy Details';
+    if (!modal || !btn) return;
+    
+    if (GameState.showEnemyInfo) {
+        modal.classList.remove('hidden');
+        btn.textContent = 'Hide Enemy Details';
+        renderEnemyInfo();
+    } else {
+        modal.classList.add('hidden');
+        btn.textContent = 'Show Enemy Details';
+    }
 }
 
 function renderEnemyInfo() {
     const container = document.getElementById('enemyInfoBox');
-    if (!container) return;
+    if (!container) {
+        console.error('enemyInfoBox not found');
+        return;
+    }
+    
+    // Make sure container is visible
+    container.style.display = 'block';
     
     container.innerHTML = '';
-    container.style.display = GameState.showEnemyInfo ? 'block' : 'none';
+    
+    // Add title
     const title = document.createElement('h3');
     title.style.margin = '0 0 15px 0';
     title.style.color = '#ffcc00';
     title.innerText = 'ENEMIES IN GAME';
     container.appendChild(title);
 
+    // Create grid container
     const enemiesGrid = document.createElement('div');
     enemiesGrid.style.display = 'grid';
     enemiesGrid.style.gridTemplateColumns = 'repeat(auto-fit, minmax(140px, 1fr))';
@@ -449,19 +465,66 @@ function renderEnemyInfo() {
     enemiesGrid.style.overflowY = 'auto';
     enemiesGrid.style.paddingRight = '5px';
 
-    ENEMIES.forEach(enemy => {
-        const card = document.createElement('div');
-        card.className = 'enemy-card';
-        card.innerHTML = `
-            <div style="background:${enemy.color}; width:30px; height:30px; margin:0 auto 8px; border-radius:4px;"></div>
-            <div style="font-weight:bold; font-size:12px; margin-bottom:5px;">${enemy.name}</div>
-            <div style="font-size:10px; color:#aaa; margin-bottom:3px;">❤️ HP: ${enemy.health}</div>
-            <div style="font-size:10px; color:#aaa; margin-bottom:5px;">⚡ ${enemy.speed}</div>
-            <div style="font-size:9px; color:#ffeb3b; margin-bottom:3px;"><strong>Special:</strong></div>
-            <div style="font-size:9px; color:#fff;">${enemy.special}</div>
-        `;
-        enemiesGrid.appendChild(card);
-    });
+    // Check if ENEMIES array exists
+    if (!ENEMIES || ENEMIES.length === 0) {
+        const errorMsg = document.createElement('div');
+        errorMsg.style.color = '#ff4444';
+        errorMsg.innerText = 'No enemy data available';
+        enemiesGrid.appendChild(errorMsg);
+    } else {
+        // Create enemy cards
+        ENEMIES.forEach((enemy, index) => {
+            const card = document.createElement('div');
+            card.className = 'enemy-card';
+            
+            // Create card content
+            const colorDiv = document.createElement('div');
+            colorDiv.style.background = enemy.color;
+            colorDiv.style.width = '30px';
+            colorDiv.style.height = '30px';
+            colorDiv.style.margin = '0 auto 8px';
+            colorDiv.style.borderRadius = '4px';
+            
+            const nameDiv = document.createElement('div');
+            nameDiv.style.fontWeight = 'bold';
+            nameDiv.style.fontSize = '12px';
+            nameDiv.style.marginBottom = '5px';
+            nameDiv.innerText = enemy.name;
+            
+            const hpDiv = document.createElement('div');
+            hpDiv.style.fontSize = '10px';
+            hpDiv.style.color = '#aaa';
+            hpDiv.style.marginBottom = '3px';
+            hpDiv.innerHTML = '❤️ HP: ' + enemy.health;
+            
+            const speedDiv = document.createElement('div');
+            speedDiv.style.fontSize = '10px';
+            speedDiv.style.color = '#aaa';
+            speedDiv.style.marginBottom = '5px';
+            speedDiv.innerHTML = '⚡ ' + enemy.speed;
+            
+            const specialLabel = document.createElement('div');
+            specialLabel.style.fontSize = '9px';
+            specialLabel.style.color = '#ffeb3b';
+            specialLabel.style.marginBottom = '3px';
+            specialLabel.innerHTML = '<strong>Special:</strong>';
+            
+            const specialDiv = document.createElement('div');
+            specialDiv.style.fontSize = '9px';
+            specialDiv.style.color = '#fff';
+            specialDiv.innerText = enemy.special;
+            
+            // Append all elements to card
+            card.appendChild(colorDiv);
+            card.appendChild(nameDiv);
+            card.appendChild(hpDiv);
+            card.appendChild(speedDiv);
+            card.appendChild(specialLabel);
+            card.appendChild(specialDiv);
+            
+            enemiesGrid.appendChild(card);
+        });
+    }
 
     container.appendChild(enemiesGrid);
 }
@@ -510,6 +573,12 @@ function initGame() {
 }
 
 function resetGame() {
+    // Cancel any existing animation frame
+    if (GameState.animationFrameId) {
+        cancelAnimationFrame(GameState.animationFrameId);
+        GameState.animationFrameId = null;
+    }
+    
     const dpr = window.devicePixelRatio || 1;
     GameState.width = window.innerWidth;
     GameState.height = window.innerHeight;
@@ -546,7 +615,7 @@ function resetGame() {
     // Ensure all 5 enemy types appear at least once in each run
     spawnInitialEnemies();
 
-    requestAnimationFrame(gameLoop);
+    GameState.animationFrameId = requestAnimationFrame(gameLoop);
 }
 
 function spawnInitialEnemies() {
@@ -939,6 +1008,21 @@ function returnToMainMenu() {
     renderEnemyInfo();
 }
 
+function restartGame() {
+    // Cancel any existing animation frame
+    if (GameState.animationFrameId) {
+        cancelAnimationFrame(GameState.animationFrameId);
+        GameState.animationFrameId = null;
+    }
+    
+    // Reset game state
+    GameState.gameActive = false;
+    document.getElementById('menu').style.display = 'none';
+    
+    // Reinitialize the game
+    initGame();
+}
+
 /* ============================================
    GAME LOOP
    ============================================ */
@@ -981,7 +1065,9 @@ function gameLoop(timestamp) {
 
     // Render
     draw();
-    requestAnimationFrame(gameLoop);
+    if (GameState.gameActive) {
+        GameState.animationFrameId = requestAnimationFrame(gameLoop);
+    }
 }
 
 /* ============================================

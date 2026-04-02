@@ -3,55 +3,94 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mario Pro Ultimate - Balanced Edition</title>
+    <title>Mario Pro Ultimate | Cyber Edition</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body id="mainBody">
 
 <div id="startMenu">
-    <h1 style="margin:0; color:#ff4444; font-size: 35px;">ULTIMATE MARIO</h1>
-    <p>Hi-Score: <span id="hiScoreDisp">0</span></p>
+    <!-- TOP SECTION: Branding -->
+    <div class="top-section">
+        <h1 id="gameTitle" class="glitch-text">ULTIMATE MARIO</h1>
+        <div class="stats-bar">
+            <span class="stat-label">HI-SCORE:</span>
+            <span id="hiScoreDisp" class="stat-value">0</span>
+        </div>
+    </div>
 
-    <div id="rgbToggle" onclick="toggleRGB()">RGB MODE: OFF</div>
-    
-    <button class="test-btn" id="testModeBtn" onclick="toggleTestMode()">TEST MODE: OFF</button>
+    <!-- CENTER SECTION: The Pro Hero Card & Action -->
+    <div class="center-section">
+        <div class="pro-hero-card">
+            <div class="card-glow"></div>
+            <div id="currentHeroPreview" class="hero-info-display">
+                <!-- Character info loads here -->
+            </div>
+            <button id="changeHeroBtn" class="cyber-outline-btn">Change Character</button>
+        </div>
 
-    <div class="hero-preview" id="currentHeroPreview"></div>
-    <button class="change-btn" id="changeHeroBtn">Change Character</button>
+        <div class="themes-hub">
+            <span class="hub-label">Themes</span>
+            <div id="themeList" class="grid-list"></div>
+        </div>
 
-    <div class="section-title">Themes</div>
-    <div class="grid-list" id="themeList"></div>
+        <button class="mega-launch-btn" onclick="initGame()">
+            <span>START ADVENTURE</span>
+        </button>
+    </div>
 
-    <button class="start-btn" onclick="initGame()">START ADVENTURE</button>
+    <!-- BOTTOM SECTION: System Controls -->
+    <div class="bottom-section">
+        <div class="settings-grid">
+            <div id="rgbToggle" class="system-chip" onclick="toggleRGB()">RGB MODE: OFF</div>
+            <button id="testModeBtn" class="system-chip" onclick="toggleTestMode()">TEST MODE: OFF</button>
+            <button id="toggleEnemyInfoBtn" class="system-chip" onclick="toggleEnemyInfo()">Show Enemy Details</button>
+        </div>
+    </div>
 
-    <button class="details-btn" id="toggleEnemyInfoBtn">Show Enemy Details</button>
-    <div id="enemyInfoBox" class="enemy-info-container"></div>
+    <!-- Enemy Info Modal (hidden by default) -->
+    <div id="enemyInfoModal" class="enemy-modal-overlay hidden">
+        <div class="enemy-modal-content">
+            <div class="modal-header">
+                <h2>ENEMY INTELLIGENCE</h2>
+                <button id="closeEnemyInfoBtn" class="modal-close-btn" onclick="toggleEnemyInfo()">✕</button>
+            </div>
+            <div id="enemyInfoBox" class="enemy-info-container"></div>
+        </div>
+    </div>
 
-    <div id="heroSelectionOverlay" class="hero-selection-overlay hidden">
-        <div class="hero-selection-content">
-            <h2>Select Hero</h2>
+    <!-- HERO SELECTION OVERLAY (MODERN) -->
+    <div id="heroSelectionOverlay" class="hero-selection-overlay hidden">       
+        <div class="selection-modal">
+            <h2 class="modal-title">CHOOSE YOUR HERO</h2>
             <div id="heroSelectionGrid" class="grid-list"></div>
-            <button class="close-btn" id="closeHeroSelectionBtn">Close</button>
+            <button id="closeHeroSelectionBtn" class="abort-btn">ABORT</button> 
         </div>
     </div>
 </div>
 
-<div id="rotateNotice">Please rotate your device to landscape for best gameplay.</div>
+<!-- GAME CONTAINER -->
 <div id="gameContainer">
     <div id="ui">SCORE: <span id="scoreVal">0</span> | <span id="curWep">None</span></div>
     <div id="menu">
-        <h1 style="color:#ff4444; font-size: 40px; margin:0;">WASTED</h1>
+        <h1 class="fail-text">MISSION FAILED</h1>
         <p id="finalScore">SCORE: 0</p>
-        <button class="start-btn" onclick="returnToMainMenu()">MAIN MENU</button>
+        <div class="game-over-buttons">
+            <button class="mega-launch-btn" onclick="restartGame()">RESTART</button>
+            <button class="cyber-outline-btn" onclick="returnToMainMenu()">MAIN MENU</button>
+        </div>
     </div>
     <canvas id="game"></canvas>
+
+    <!-- Mobile Controls -->
     <div class="controls">
         <div id="leftBtn" class="btn">◀</div>
         <div id="rightBtn" class="btn">▶</div>
     </div>
     <div id="jumpBtn" class="jump-btn">JUMP</div>
-    <div id="attackBtn" class="attack-btn">ATTACK</div>
+    <div id="attackBtn" class="attack-btn">STRIKE</div>
 </div>
+
+<div id="rotateNotice">Please rotate your device to landscape for best gameplay.</div>
 
 <script src="game.js"></script>
 </body>
