@@ -156,6 +156,8 @@ const GameState = {
     canvas: null,
     ctx: null,
     audio: new AudioManager(),
+    width: 0,
+    height: 0,
 
     // Game variables
     score: 0,
@@ -403,8 +405,15 @@ function initGame() {
 }
 
 function resetGame() {
-    GameState.canvas.width = window.innerWidth;
-    GameState.canvas.height = window.innerHeight;
+    const dpr = window.devicePixelRatio || 1;
+    GameState.width = window.innerWidth;
+    GameState.height = window.innerHeight;
+
+    GameState.canvas.style.width = `${GameState.width}px`;
+    GameState.canvas.style.height = `${GameState.height}px`;
+    GameState.canvas.width = Math.floor(GameState.width * dpr);
+    GameState.canvas.height = Math.floor(GameState.height * dpr);
+    GameState.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     GameState.score = 0;
     GameState.cameraX = 0;
@@ -414,7 +423,7 @@ function resetGame() {
     GameState.keys = {};
 
     GameState.player = createPlayer();
-    GameState.platforms = [{ x: 0, y: GameState.canvas.height - 80, w: 1500, h: 80 }];
+    GameState.platforms = [{ x: 0, y: GameState.height - 80, w: 1500, h: 80 }];
     GameState.lastX = 1500;
     GameState.enemies = [];
     GameState.bullets = [];
@@ -490,13 +499,13 @@ function handleAttack() {
    GAME LOGIC
    ============================================ */
 function generatePlatforms() {
-    while (GameState.lastX < GameState.player.x + GameState.canvas.width + 500) {
+    while (GameState.lastX < GameState.player.x + GameState.width + 500) {
         const gap = CONFIG.LEVEL.PLATFORM_MIN_GAP + Math.random() * (CONFIG.LEVEL.PLATFORM_MAX_GAP - CONFIG.LEVEL.PLATFORM_MIN_GAP);
         const width = CONFIG.LEVEL.PLATFORM_MIN_WIDTH + Math.random() * (CONFIG.LEVEL.PLATFORM_MAX_WIDTH - CONFIG.LEVEL.PLATFORM_MIN_WIDTH);
         const prevPlatform = GameState.platforms[GameState.platforms.length - 1];
         const y = Math.max(
-            GameState.canvas.height * 0.4,
-            Math.min(prevPlatform.y + (Math.random() * 140 - 70), GameState.canvas.height - 100)
+            GameState.height * 0.4,
+            Math.min(prevPlatform.y + (Math.random() * 140 - 70), GameState.height - 100)
         );
 
         GameState.platforms.push({ x: GameState.lastX + gap, y: y, w: width, h: CONFIG.LEVEL.PLATFORM_HEIGHT });
@@ -546,7 +555,7 @@ function updatePlayer(dt) {
     GameState.player.stretch += (1 - GameState.player.stretch) * 0.15;
 
     // Fall out of bounds
-    if (GameState.player.y > GameState.canvas.height + 150) {
+    if (GameState.player.y > GameState.height + 150) {
         endGame();
     }
 }
@@ -651,7 +660,7 @@ function updateScore(dt) {
 }
 
 function updateCamera() {
-    GameState.cameraX += (GameState.player.x - GameState.cameraX - GameState.canvas.width * 0.35) * 0.1;
+    GameState.cameraX += (GameState.player.x - GameState.cameraX - GameState.width * 0.35) * 0.1;
 }
 
 function endGame() {
@@ -700,7 +709,7 @@ function gameLoop(timestamp) {
    RENDERING
    ============================================ */
 function draw() {
-    GameState.ctx.clearRect(0, 0, GameState.canvas.width, GameState.canvas.height);
+    GameState.ctx.clearRect(0, 0, GameState.width, GameState.height);
     GameState.ctx.save();
     GameState.ctx.translate(-GameState.cameraX, 0);
 
@@ -880,45 +889,97 @@ function drawWeapon() {
             }
         }
     } else if (GameState.selectedWeapon === 'Pistol') {
-        // Pistol barrel and body - advanced design
-        
+        // Pistol barrel and body - realistic design
+
         // Main barrel
-        GameState.ctx.fillStyle = '#1a1a1a';
-        GameState.ctx.fillRect(GameState.player.dir * 15, -28, 20, 10);
-        
-        // Barrel shine
-        GameState.ctx.fillStyle = '#333333';
-        GameState.ctx.fillRect(GameState.player.dir * 15, -27, 20, 3);
-        
-        // Slide/Top - metallic
-        GameState.ctx.fillStyle = '#555555';
-        GameState.ctx.fillRect(GameState.player.dir * 15, -30, 18, 3);
-        
-        // Sight on top - red dot
-        GameState.ctx.fillStyle = '#ff0000';
-        GameState.ctx.beginPath();
-        GameState.ctx.arc(GameState.player.dir * (15 + 8), -28, 2, 0, Math.PI * 2);
-        GameState.ctx.fill();
-        
-        // Hammer/Back detail
-        GameState.ctx.fillStyle = '#222222';
-        GameState.ctx.fillRect(GameState.player.dir * 10, -26, 4, 8);
-        
-        // Trigger guard
+        GameState.ctx.fillStyle = '#292929';
+        GameState.ctx.fillRect(GameState.player.dir * 14, -30, 24, 10);
+
+        // Barrel inner sleeve
+        GameState.ctx.fillStyle = '#404040';
+        GameState.ctx.fillRect(GameState.player.dir * 16, -28, 20, 6);
+
+        // Muzzle ring
+        GameState.ctx.fillStyle = '#999999';
+        GameState.ctx.fillRect(GameState.player.dir * 38, -29, 6, 8);
+
+        // Slide/top rail
+        GameState.ctx.fillStyle = '#686868';
+        GameState.ctx.fillRect(GameState.player.dir * 14, -32, 22, 4);
+
+        // Slide grooves
+        GameState.ctx.strokeStyle = '#2b2b2b';
+        GameState.ctx.lineWidth = 1;
+        for (let i = 0; i < 3; i++) {
+            GameState.ctx.beginPath();
+            GameState.ctx.moveTo(GameState.player.dir * (16 + i * 6), -30);
+            GameState.ctx.lineTo(GameState.player.dir * (16 + i * 6), -26);
+            GameState.ctx.stroke();
+        }
+
+        // Front sight
+        GameState.ctx.fillStyle = '#00ff00';
+        GameState.ctx.fillRect(GameState.player.dir * 25, -33, 2, 3);
+
+        // Rear sight
+        GameState.ctx.fillStyle = '#cccccc';
+        GameState.ctx.fillRect(GameState.player.dir * 17, -33, 5, 3);
+
+        // Frame body
+        GameState.ctx.fillStyle = '#2a2a2a';
+        GameState.ctx.fillRect(GameState.player.dir * 10, -20, 16, 14);
+
+        // Grip
+        GameState.ctx.fillStyle = '#1e1e1e';
+        GameState.ctx.fillRect(GameState.player.dir * 8, -12, 12, 20);
+
+        // Grip shading
+        GameState.ctx.fillStyle = '#111';
+        GameState.ctx.fillRect(GameState.player.dir * 8, -12, 12, 4);
+
+        // Grip texturing
         GameState.ctx.strokeStyle = '#444444';
+        GameState.ctx.lineWidth = 0.8;
+        for (let i = 0; i < 4; i++) {
+            GameState.ctx.beginPath();
+            GameState.ctx.moveTo(GameState.player.dir * 9, -8 + i * 4);
+            GameState.ctx.lineTo(GameState.player.dir * 19, -7 + i * 4);
+            GameState.ctx.stroke();
+        }
+
+        // Trigger guard
+        GameState.ctx.strokeStyle = '#595959';
         GameState.ctx.lineWidth = 1.5;
         GameState.ctx.beginPath();
-        GameState.ctx.moveTo(GameState.player.dir * 24, -25);
-        GameState.ctx.lineTo(GameState.player.dir * 28, -20);
-        GameState.ctx.lineTo(GameState.player.dir * 28, -18);
-        GameState.ctx.lineTo(GameState.player.dir * 24, -23);
+        GameState.ctx.moveTo(GameState.player.dir * 20, -15);
+        GameState.ctx.quadraticCurveTo(GameState.player.dir * 22, -10, GameState.player.dir * 19, -6);
         GameState.ctx.stroke();
-        
-        // Grip texture
-        GameState.ctx.fillStyle = '#333333';
-        GameState.ctx.fillRect(GameState.player.dir * 10, -20, 3, 12);
-        
-        // Grip lines
+
+        // Trigger
+        GameState.ctx.fillStyle = '#b4b4b4';
+        GameState.ctx.fillRect(GameState.player.dir * 18, -10, 2, 4);
+
+        // Muzzle flash effect
+        if (GameState.player.gunFlash > 0) {
+            const flashSize = (1 - GameState.player.gunFlash / 0.1) * 22;
+            GameState.ctx.fillStyle = `rgba(255, 220, 90, ${Math.min(1, GameState.player.gunFlash * 8)})`;
+            GameState.ctx.beginPath();
+            GameState.ctx.arc(GameState.player.dir * 43, -25, flashSize, Math.PI * 0.2, Math.PI * 1.8);
+            GameState.ctx.fill();
+
+            GameState.ctx.fillStyle = `rgba(255, 255, 200, ${Math.min(1, GameState.player.gunFlash * 12)})`;
+            GameState.ctx.beginPath();
+            GameState.ctx.arc(GameState.player.dir * 42, -24, flashSize * 0.5, Math.PI * 0.2, Math.PI * 1.8);
+            GameState.ctx.fill();
+
+            GameState.ctx.fillStyle = `rgba(150, 150, 150, ${Math.max(0, GameState.player.gunFlash * 4 - 0.2)})`;
+            for (let i = 0; i < 2; i++) {
+                GameState.ctx.beginPath();
+                GameState.ctx.arc(GameState.player.dir * (42 + i * 2), -25 + i * 2, 2 + i, 0, Math.PI * 2);
+                GameState.ctx.fill();
+            }
+        }
+
         GameState.ctx.strokeStyle = '#1a1a1a';
         GameState.ctx.lineWidth = 0.5;
         for (let i = 0; i < 4; i++) {
@@ -953,6 +1014,35 @@ function drawWeapon() {
         }
     }
 }
+
+function updateOrientationState() {
+    const isPortrait = window.matchMedia('(orientation: portrait) and (max-width: 768px)').matches;
+    const notice = document.getElementById('rotateNotice');
+    const uiArea = document.querySelectorAll('#gameContainer, #startMenu, #menu, .controls, #ui');
+
+    if (isPortrait) {
+        if (notice) notice.style.display = 'flex';
+        uiArea.forEach(el => {
+            el.style.filter = 'blur(4px)';
+            el.style.pointerEvents = 'none';
+        });
+        if (GameState.gameActive) {
+            GameState.gameActive = false;
+            if (document.getElementById('menu')) document.getElementById('menu').style.display = 'flex';
+            document.getElementById('finalScore').innerText = 'Rotate device to play';
+        }
+    } else {
+        if (notice) notice.style.display = 'none';
+        uiArea.forEach(el => {
+            el.style.filter = 'none';
+            el.style.pointerEvents = 'auto';
+        });
+        document.getElementById('menu').style.display = 'none';
+    }
+}
+
+window.addEventListener('resize', updateOrientationState);
+window.addEventListener('orientationchange', updateOrientationState);
 
 /* ============================================
    INITIALIZATION

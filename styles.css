@@ -325,3 +325,171 @@ button.start-btn:active {
     transform: translateY(-3px);
     box-shadow: 0 8px 25px rgba(100, 150, 255, 0.3);
 }
+
+@media (max-width: 768px) {
+    body {
+        font-size: 14px;
+        touch-action: manipulation;
+        overflow: auto;
+    }
+
+    #gameContainer {
+        width: 100vw;
+        height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+        min-height: 100vh;
+    }
+
+    canvas {
+        width: 100%;
+        height: 100%;
+    }
+
+    #ui {
+        top: 8px;
+        left: 8px;
+        padding: 8px 14px;
+        font-size: 14px;
+        gap: 10px;
+    }
+
+    .controls {
+        bottom: 14px;
+        left: 6px;
+        gap: 10px;
+    }
+
+    .btn {
+        width: 48px;
+        height: 48px;
+        font-size: 22px;
+        border-radius: 12px;
+    }
+
+    .jump-btn,
+    .attack-btn {
+        width: 70px;
+        height: 70px;
+        border-width: 2px;
+        font-size: 18px;
+        right: 10px;
+    }
+
+    .jump-btn {
+        bottom: 88px;
+    }
+
+    .attack-btn {
+        bottom: 14px;
+    }
+
+    .card {
+        width: 62px;
+        padding: 7px 4px;
+        font-size: 8px;
+    }
+
+    button.start-btn {
+        font-size: 14px;
+        padding: 10px 30px;
+        margin-top: 10px;
+        margin-bottom: 10px;
+    }
+
+    #startMenu h1 {
+        font-size: 30px;
+    }
+
+    #menu h1 {
+        font-size: 36px;
+    }
+
+    #startMenu p,
+    .enemy-info-container h3,
+    .enemy-card {
+        font-size: 11px;
+    }
+
+    .enemy-info-container {
+        width: 95%;
+        max-width: 100%;
+        padding: 8px;
+    }
+}
+
+@media (max-width: 480px) {
+    .controls {
+        bottom: 10px;
+    }
+
+    .btn {
+        width: 44px;
+        height: 44px;
+        font-size: 20px;
+    }
+
+    .jump-btn,
+    .attack-btn {
+        width: 64px;
+        height: 64px;
+        font-size: 16px;
+    }
+
+    #ui {
+        top: 6px;
+        left: 6px;
+        padding: 6px 10px;
+        font-size: 13px;
+    }
+}
+
+#rotateNotice {
+    position: fixed;
+    inset: 0;
+    display: none;
+    z-index: 9999;
+    background: rgba(0, 0, 0, 0.85);
+    color: #fff;
+    text-align: center;
+    font-size: 20px;
+    font-weight: bold;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    line-height: 1.4;
+    font-family: 'Arial Rounded MT Bold', sans-serif;
+}
+
+@media (orientation: portrait) and (max-width: 768px) {
+    body {
+        overflow: hidden;
+    }
+
+    #rotateNotice {
+        display: flex;
+    }
+
+    #gameContainer, #startMenu, #menu, .controls, #ui {
+        filter: blur(4px);
+        pointer-events: none;
+        user-select: none;
+    }
+
+    #startMenu h1 { font-size: 26px; }
+    #startMenu p { font-size: 12px; }
+    .card { width: 60px; font-size: 8px; }
+    .start-btn { font-size: 13px; padding: 10px 25px; }
+}
+
+@media (orientation: landscape) and (max-width: 768px) {
+    #rotateNotice {
+        display: none;
+    }
+
+    #gameContainer, #startMenu, #menu, .controls, #ui {
+        filter: none;
+        pointer-events: auto;
+        user-select: auto;
+    }
+}
+
+
