@@ -14,18 +14,26 @@
 
     <div id="rgbToggle" onclick="toggleRGB()">RGB MODE: OFF</div>
     
-    <button class="test-btn" onclick="testUnlockAll()">TEST - UNLOCK ALL</button>
+    <button class="test-btn" id="testModeBtn" onclick="toggleTestMode()">TEST MODE: OFF</button>
+
+    <div class="hero-preview" id="currentHeroPreview"></div>
+    <button class="change-btn" id="changeHeroBtn">Change Character</button>
 
     <div class="section-title">Themes</div>
     <div class="grid-list" id="themeList"></div>
-    <div class="section-title">Weapons (E to Attack)</div>
-    <div class="grid-list" id="weaponList"></div>
-    <div class="section-title">Skins</div>
-    <div class="grid-list" id="skinList"></div>
-    
+
     <button class="start-btn" onclick="initGame()">START ADVENTURE</button>
-    
+
+    <button class="details-btn" id="toggleEnemyInfoBtn">Show Enemy Details</button>
     <div id="enemyInfoBox" class="enemy-info-container"></div>
+
+    <div id="heroSelectionOverlay" class="hero-selection-overlay hidden">
+        <div class="hero-selection-content">
+            <h2>Select Hero</h2>
+            <div id="heroSelectionGrid" class="grid-list"></div>
+            <button class="close-btn" id="closeHeroSelectionBtn">Close</button>
+        </div>
+    </div>
 </div>
 
 <div id="rotateNotice">Please rotate your device to landscape for best gameplay.</div>
@@ -34,7 +42,7 @@
     <div id="menu">
         <h1 style="color:#ff4444; font-size: 40px; margin:0;">WASTED</h1>
         <p id="finalScore">SCORE: 0</p>
-        <button class="start-btn" onclick="location.reload()">MAIN MENU</button>
+        <button class="start-btn" onclick="returnToMainMenu()">MAIN MENU</button>
     </div>
     <canvas id="game"></canvas>
     <div class="controls">

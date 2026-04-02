@@ -7,7 +7,7 @@ const CONFIG = {
         JUMP: -880,
         GRAVITY: 2300,
         WIDTH: 35,
-        HEIGHT: 48
+        HEIGHT: 56
     },
     WEAPON: {
         PISTOL_SPEED: 950,
@@ -37,18 +37,14 @@ const THEMES = [
     { name: 'Sunset', bg: 'linear-gradient(#ff8c00, #ff0080)', req: 5000 }
 ];
 
-const WEAPONS = [
-    { name: 'None', req: 0 },
-    { name: 'Katana', req: 4000 },
-    { name: 'Pistol', req: 8000 }
-];
 
-const SKINS = [
-    { name: 'Classic', color: '#ffeb3b', overall: '#0055ff', req: 0 },
-    { name: 'Ninja', color: '#333', overall: '#111', req: 1000 },
-    { name: 'Gold', color: '#ffd700', overall: '#ff8c00', req: 3000 },
-    { name: 'Diamond', color: '#b9f2ff', overall: '#00d4ff', req: 12000 },
-    { name: 'Ice', color: '#ffffff', overall: '#a5f3fc', req: 20000 }
+
+const HEROES = [
+    { name: 'Classic', color: '#ffeb3b', overall: '#0055ff', req: 0, weapon: 'None', power: 'Basic abilities', icon: '🛡️' },
+    { name: 'Ninja', color: '#333', overall: '#111', req: 4000, weapon: 'Katana', power: 'Swift katana strikes', icon: '🥷' },
+    { name: 'Gold', color: '#ffd700', overall: '#ff8c00', req: 8000, weapon: 'Pistol', power: 'Accurate pistol shots', icon: '🔫' },
+    { name: 'Diamond', color: '#b9f2ff', overall: '#00d4ff', req: 12000, weapon: 'Assault Rifle', power: 'Double pistol fire rate', icon: '🔧' },
+    { name: 'Ice', color: '#ffffff', overall: '#a5f3fc', req: 20000, weapon: 'Ice Powers', power: 'Ice shield breaks for 2s invincibility', icon: '❄️' }
 ];
 
 const ENEMY_TYPES = {
@@ -168,9 +164,8 @@ const GameState = {
     gameActive: false,
 
     // UI variables
-    selectedSkin: 'Classic',
+    selectedHero: 'Classic',
     selectedTheme: 'Day',
-    selectedWeapon: 'None',
     isRGB: false,
     hiScore: 0,
 
@@ -183,15 +178,26 @@ const GameState = {
 
     // Tracking
     lastX: 0,
-    keys: {}
+    keys: {},
+    showEnemyInfo: false,
+    testMode: false
 };
 
 /* ============================================
    UTILITY FUNCTIONS
    ============================================ */
 function loadHiScore() {
-    GameState.hiScore = parseInt(localStorage.getItem('marioHiScore')) || 0;
+    const savedHiScore = parseInt(localStorage.getItem('marioHiScore')) || 0;
+    GameState.testMode = localStorage.getItem('marioTestMode') === '1';
+    GameState.hiScore = GameState.testMode ? 999999 : savedHiScore;
     document.getElementById('hiScoreDisp').innerText = GameState.hiScore;
+    updateTestModeButton();
+}
+
+function updateTestModeButton() {
+    const btn = document.getElementById('testModeBtn');
+    if (!btn) return;
+    btn.textContent = GameState.testMode ? 'TEST MODE: ON' : 'TEST MODE: OFF';
 }
 
 function saveHiScore() {
@@ -204,7 +210,7 @@ function saveHiScore() {
    OBJECT CREATORS
    ============================================ */
 function createPlayer() {
-    const skin = SKINS.find(s => s.name === GameState.selectedSkin);
+    const hero = HEROES.find(h => h.name === GameState.selectedHero);
     return {
         x: 100,
         y: 100,
@@ -218,33 +224,58 @@ function createPlayer() {
         grounded: false,
         stretch: 1,
         dir: 1,
-        color: skin.color,
-        overall: skin.overall,
-        name: skin.name,
+        color: hero.color,
+        overall: hero.overall,
+        name: hero.name,
+        weapon: hero.weapon,
+        power: hero.power,
         slash: 0,
         slashAngle: 0,
         atkCooldown: 0,
-        gunFlash: 0
+        gunFlash: 0,
+        shield: hero.name === 'Ice' ? 1 : 0, // Ice has shield
+        invincibleTime: 0, // For Ice invincibility after shield break
+        isFiring: false // For continuous fire
     };
 }
 
 function createEnemy(type, x, y, platformWidth, platformX) {
-    const hp = type === ENEMY_TYPES.TANK ? 2 : 1;
-    const speed = type === ENEMY_TYPES.RUNNER ? 260 : 140;
-    
+    let hp = 1;
+    let speed = 140;
+    let w = 35;
+    let h = 35;
+
+    if (type === ENEMY_TYPES.TANK) {
+        hp = 2;
+        speed = 100;
+        w = 48;
+        h = 48;
+    } else if (type === ENEMY_TYPES.RUNNER) {
+        speed = 260;
+    } else if (type === ENEMY_TYPES.FLYER) {
+        speed = 90;
+        w = 36;
+        h = 36;
+    } else if (type === ENEMY_TYPES.FIRE) {
+        speed = 120;
+    }
+
     return {
         x: x,
         y: y,
-        w: 35,
-        h: 35,
-        startX: platformX,
-        range: platformWidth - 40,
+        baseY: y,
+        w: w,
+        h: h,
+        startX: x,
+        range: Math.max(80, platformWidth - 40),
         speed: speed,
         alive: true,
         type: type,
         hp: hp,
         fireTimer: 0,
-        fireInterval: 2 + Math.random() * 1
+        fireInterval: 2 + Math.random() * 1,
+        hoverAngle: 0,
+        dropTimer: 0
     };
 }
 
@@ -276,8 +307,7 @@ function createProjectile(fromX, fromY, dirX, dirY) {
    ============================================ */
 function renderMenus() {
     renderThemeMenu();
-    renderWeaponMenu();
-    renderSkinMenu();
+    renderHeroMenu();
 }
 
 function renderThemeMenu() {
@@ -298,40 +328,95 @@ function renderThemeMenu() {
     });
 }
 
-function renderWeaponMenu() {
-    const list = document.getElementById('weaponList');
+
+
+function renderHeroMenu() {
+    const list = document.getElementById('skinList');
+    if (!list) return; // Early exit if the old list is removed from UI
     list.innerHTML = '';
-    WEAPONS.forEach(w => {
-        const isLocked = GameState.hiScore < w.req;
+    HEROES.forEach(h => {
+        const isLocked = GameState.hiScore < h.req;
         const card = document.createElement('div');
-        card.className = `card ${isLocked ? 'locked' : ''} ${GameState.selectedWeapon === w.name ? 'selected' : ''}`;
-        card.innerHTML = `${w.name}${isLocked ? '<br>🔒' + w.req : ''}`;
+        card.className = `card ${isLocked ? 'locked' : ''} ${GameState.selectedHero === h.name ? 'selected' : ''}`;
+        card.innerHTML = `<div style="background:${h.color}; width:15px; height:15px; margin:auto"></div>${h.name}${isLocked ? '<br>🔒' + h.req : ''}<br><small>${h.power}</small>`;
         if (!isLocked) {
             card.onclick = () => {
-                GameState.selectedWeapon = w.name;
+                GameState.selectedHero = h.name;
                 renderMenus();
+                renderHeroPreview();
             };
         }
         list.appendChild(card);
     });
 }
 
-function renderSkinMenu() {
-    const list = document.getElementById('skinList');
-    list.innerHTML = '';
-    SKINS.forEach(s => {
-        const isLocked = GameState.hiScore < s.req;
+function renderHeroPreview() {
+    const current = HEROES.find(h => h.name === GameState.selectedHero) || HEROES[0];
+    const preview = document.getElementById('currentHeroPreview');
+    if (!preview) return;
+    preview.innerHTML = `
+        <div class="hero-preview-row">
+            <div class="hero-img" style="background:${current.overall};">
+                <span>${current.icon}</span>
+            </div>
+            <div class="hero-details">
+                <div class="hero-name">${current.name}</div>
+                <div class="hero-power">${current.power}</div>
+            </div>
+        </div>
+        <div class="hero-extra">Weapon: ${current.weapon}</div>
+    `;
+}
+
+function openHeroSelection() {
+    const overlay = document.getElementById('heroSelectionOverlay');
+    if (!overlay) return;
+    overlay.classList.remove('hidden');
+    renderHeroSelection();
+}
+
+function closeHeroSelection() {
+    const overlay = document.getElementById('heroSelectionOverlay');
+    if (!overlay) return;
+    overlay.classList.add('hidden');
+}
+
+function renderHeroSelection() {
+    const grid = document.getElementById('heroSelectionGrid');
+    if (!grid) return;
+    grid.innerHTML = '';
+
+    HEROES.forEach(h => {
+        const isLocked = GameState.hiScore < h.req;
         const card = document.createElement('div');
-        card.className = `card ${isLocked ? 'locked' : ''} ${GameState.selectedSkin === s.name ? 'selected' : ''}`;
-        card.innerHTML = `<div style="background:${s.color}; width:15px; height:15px; margin:auto"></div>${s.name}${isLocked ? '<br>🔒' + s.req : ''}`;
+        card.className = `card ${isLocked ? 'locked' : ''} ${GameState.selectedHero === h.name ? 'selected' : ''}`;
+        card.style.width = '180px';
+        card.style.minHeight = '95px';
+        card.style.display = 'flex';
+        card.style.flexDirection = 'column';
+        card.style.justifyContent = 'space-between';
+        card.style.padding = '12px';
+        card.innerHTML = `<div style="display:flex; align-items:center; gap:10px;"><div style="background:${h.color}; width:16px; height:16px; border-radius:50%;"></div><strong>${h.name}</strong></div><small style="color:#ccc;">${h.power}</small><div style="font-size:11px;color:#bff;">${isLocked ? 'LOCKED 🔒' : 'Ready'}</div>`;
+
         if (!isLocked) {
             card.onclick = () => {
-                GameState.selectedSkin = s.name;
+                GameState.selectedHero = h.name;
                 renderMenus();
+                renderHeroPreview();
+                closeHeroSelection();
             };
         }
-        list.appendChild(card);
+        grid.appendChild(card);
     });
+}
+
+function toggleEnemyInfo() {
+    GameState.showEnemyInfo = !GameState.showEnemyInfo;
+    const container = document.getElementById('enemyInfoBox');
+    const btn = document.getElementById('toggleEnemyInfoBtn');
+    if (!container || !btn) return;
+    container.style.display = GameState.showEnemyInfo ? 'block' : 'none';
+    btn.textContent = GameState.showEnemyInfo ? 'Hide Enemy Details' : 'Show Enemy Details';
 }
 
 function renderEnemyInfo() {
@@ -339,6 +424,7 @@ function renderEnemyInfo() {
     if (!container) return;
     
     container.innerHTML = '';
+    container.style.display = GameState.showEnemyInfo ? 'block' : 'none';
     const title = document.createElement('h3');
     title.style.margin = '0 0 15px 0';
     title.style.color = '#ffcc00';
@@ -380,8 +466,17 @@ function toggleRGB() {
     btn.classList.toggle('active', GameState.isRGB);
 }
 
-function testUnlockAll() {
-    GameState.hiScore = 999999;
+function toggleTestMode() {
+    GameState.testMode = !GameState.testMode;
+    localStorage.setItem('marioTestMode', GameState.testMode ? '1' : '0');
+
+    if (GameState.testMode) {
+        GameState.hiScore = 999999;
+    } else {
+        GameState.hiScore = parseInt(localStorage.getItem('marioHiScore')) || 0;
+    }
+
+    updateTestModeButton();
     renderMenus();
     renderEnemyInfo();
 }
@@ -399,7 +494,7 @@ function initGame() {
         document.getElementById('gameContainer').style.background = '#000';
     }
     
-    document.getElementById('curWep').innerText = GameState.selectedWeapon;
+    document.getElementById('curWep').innerText = HEROES.find(h => h.name === GameState.selectedHero).weapon;
     GameState.audio.playBg();
     resetGame();
 }
@@ -429,7 +524,21 @@ function resetGame() {
     GameState.bullets = [];
     GameState.enemyProjectiles = [];
 
+    // Ensure all 5 enemy types appear at least once in each run
+    spawnInitialEnemies();
+
     requestAnimationFrame(gameLoop);
+}
+
+function spawnInitialEnemies() {
+    const basePlatform = GameState.platforms[0];
+    const groundY = basePlatform.y - 40;
+
+    GameState.enemies.push(createEnemy(ENEMY_TYPES.NORMAL, 550, groundY, 180, basePlatform.x));
+    GameState.enemies.push(createEnemy(ENEMY_TYPES.FLYER, 920, basePlatform.y - 120, 0, 0));
+    GameState.enemies.push(createEnemy(ENEMY_TYPES.TANK, 1300, groundY, 220, basePlatform.x));
+    GameState.enemies.push(createEnemy(ENEMY_TYPES.RUNNER, 1700, groundY, 170, basePlatform.x));
+    GameState.enemies.push(createEnemy(ENEMY_TYPES.FIRE, 2100, groundY, 240, basePlatform.x));
 }
 
 /* ============================================
@@ -443,6 +552,9 @@ function setupInputBindings() {
     };
     window.onkeyup = (e) => {
         GameState.keys[e.code] = false;
+        if (e.code === 'KeyE') {
+            GameState.player.isFiring = false; // Stop continuous fire
+        }
     };
 
     // Touch controls
@@ -455,6 +567,10 @@ function setupInputBindings() {
     document.getElementById('attackBtn').ontouchstart = (e) => {
         e.preventDefault();
         handleAttack();
+    };
+    document.getElementById('attackBtn').ontouchend = (e) => {
+        e.preventDefault();
+        GameState.player.isFiring = false;
     };
 }
 
@@ -482,17 +598,34 @@ function handleJump() {
 function handleAttack() {
     if (GameState.player.atkCooldown > 0) return;
 
-    if (GameState.selectedWeapon === 'Pistol') {
-        GameState.bullets.push(createBullet(GameState.player.x, GameState.player.y, GameState.player.dir));
-        GameState.player.gunFlash = 0.1;
-        GameState.player.atkCooldown = CONFIG.WEAPON.ATTACK_COOLDOWN;
-        GameState.audio.playBullet();
-    } else if (GameState.selectedWeapon === 'Katana') {
+    const hero = HEROES.find(h => h.name === GameState.selectedHero);
+
+    if (hero.weapon === 'Katana') {
         GameState.player.slash = CONFIG.WEAPON.KATANA_DURATION;
         GameState.player.slashAngle = 0;
         GameState.player.atkCooldown = CONFIG.WEAPON.ATTACK_COOLDOWN;
         GameState.audio.playKatana();
+    } else if (hero.weapon === 'Pistol' || hero.weapon === 'Assault Rifle' || hero.weapon === 'Ice Powers') {
+        if (!GameState.player.isFiring) {
+            GameState.bullets.push(createBullet(GameState.player.x, GameState.player.y, GameState.player.dir));
+            GameState.player.gunFlash = 0.1;
+            GameState.player.atkCooldown = (hero.weapon === 'Assault Rifle' || hero.weapon === 'Ice Powers') ? CONFIG.WEAPON.ATTACK_COOLDOWN * 0.5 : CONFIG.WEAPON.ATTACK_COOLDOWN;
+            GameState.audio.playBullet();
+            GameState.player.isFiring = true;
+        }
     }
+}
+
+function startContinuousFire() {
+    const fireInterval = setInterval(() => {
+        if (!GameState.player.continuousFire || GameState.gameActive === false) {
+            clearInterval(fireInterval);
+            return;
+        }
+        GameState.bullets.push(createBullet(GameState.player.x, GameState.player.y, GameState.player.dir));
+        GameState.player.gunFlash = 0.1;
+        GameState.audio.playBullet();
+    }, 100); // Fire every 100ms
 }
 
 /* ============================================
@@ -513,7 +646,12 @@ function generatePlatforms() {
         if (Math.random() > 0.55) {
             const types = Object.values(ENEMY_TYPES);
             const type = types[Math.floor(Math.random() * types.length)];
-            GameState.enemies.push(createEnemy(type, GameState.lastX + gap + 50, y - 35, width, GameState.lastX + gap));
+            let enemyY = y - 35;
+            if (type === ENEMY_TYPES.FLYER) {
+                enemyY = y - 160 - Math.random() * 80; // keep flyers above the platform
+            }
+            enemyY = Math.max(50, Math.min(enemyY, GameState.height - 120));
+            GameState.enemies.push(createEnemy(type, GameState.lastX + gap + 50, enemyY, width, GameState.lastX + gap));
         }
 
         GameState.lastX += gap + width;
@@ -578,6 +716,31 @@ function updateBullets(dt) {
         });
     });
 
+    // Handle ice projectiles from player
+    GameState.enemyProjectiles.forEach((ep, epi) => {
+        if (ep.isIce) {
+            ep.x += ep.dx * dt;
+            ep.y += ep.dy * dt;
+            ep.life -= dt;
+
+            GameState.enemies.forEach((en, ei) => {
+                if (en.alive && ep.x < en.x + en.w && ep.x + ep.w > en.x &&
+                    ep.y < en.y + en.h && ep.y + ep.h > en.y) {
+                    en.hp--;
+                    if (en.hp <= 0) {
+                        en.alive = false;
+                        GameState.score += CONFIG.SCORE.BULLET_KILL;
+                    }
+                    GameState.enemyProjectiles.splice(epi, 1);
+                }
+            });
+
+            if (ep.life <= 0) {
+                GameState.enemyProjectiles.splice(epi, 1);
+            }
+        }
+    });
+
     GameState.bullets = GameState.bullets.filter(b => b.life > 0);
 }
 
@@ -588,11 +751,13 @@ function updateEnemyProjectiles(dt) {
 
         if (GameState.player.x < ep.x + ep.w && GameState.player.x + GameState.player.w > ep.x &&
             GameState.player.y < ep.y + ep.h && GameState.player.y + GameState.player.h > ep.y) {
-            if (GameState.player.dy > 10) {
-                GameState.player.dy = -600;
-                GameState.score += CONFIG.SCORE.JUMP_PROJECTILE;
-                GameState.enemyProjectiles.splice(epi, 1);
-            } else {
+            GameState.enemyProjectiles.splice(epi, 1);
+
+            if (GameState.player.name === 'Ice' && GameState.player.shield > 0) {
+                GameState.player.shield = 0;
+                GameState.player.invincibleTime = 2;
+                GameState.player.dy = -400;
+            } else if (GameState.player.invincibleTime <= 0) {
                 endGame();
             }
         }
@@ -620,13 +785,55 @@ function updateEnemies(dt) {
                 GameState.player.dy = -600;
                 GameState.score += CONFIG.SCORE.STOMP_KILL;
             } else {
-                endGame();
+                // Ice shield protection
+                if (GameState.player.name === 'Ice' && GameState.player.shield > 0) {
+                    GameState.player.shield = 0;
+                    GameState.player.invincibleTime = 2;
+                    GameState.player.dy = -400; // Bounce back
+                } else if (GameState.player.invincibleTime <= 0) {
+                    endGame();
+                }
             }
         }
 
         // Enemy movement
-        en.x += en.speed * dt;
-        if (Math.abs(en.x - en.startX) > en.range) en.speed *= -1;
+        if (en.type === ENEMY_TYPES.FLYER) {
+            en.hoverAngle += dt * 2.5;
+            en.y = en.baseY + Math.sin(en.hoverAngle) * 15;
+            en.x += en.speed * dt;
+        } else if (en.type === ENEMY_TYPES.RUNNER) {
+            const distToPlayer = Math.abs(en.x - GameState.player.x);
+            if (distToPlayer < 220) {
+                en.speed = en.speed > 0 ? 420 : -420;
+            } else {
+                en.speed = en.speed > 0 ? 260 : -260;
+            }
+            en.x += en.speed * dt;
+        } else {
+            en.x += en.speed * dt;
+        }
+
+        if (en.type !== ENEMY_TYPES.FLYER && Math.abs(en.x - en.startX) > en.range) {
+            en.speed *= -1;
+        }
+
+        // Flyer bomb drop
+        if (en.type === ENEMY_TYPES.FLYER) {
+            en.dropTimer += dt;
+            if (en.dropTimer > 1.4) {
+                en.dropTimer = 0;
+                GameState.enemyProjectiles.push({
+                    x: en.x,
+                    y: en.y + en.h,
+                    dx: 0,
+                    dy: 220,
+                    w: 10,
+                    h: 10,
+                    life: 4,
+                    isBomb: true
+                });
+            }
+        }
 
         // FireEnemy attack
         if (en.type === ENEMY_TYPES.FIRE) {
@@ -670,6 +877,23 @@ function endGame() {
     document.getElementById('finalScore').innerText = 'SCORE: ' + Math.floor(GameState.score);
 }
 
+function returnToMainMenu() {
+    GameState.gameActive = false;
+    document.getElementById('menu').style.display = 'none';
+    document.getElementById('startMenu').style.display = 'flex';
+
+    if (!GameState.testMode) {
+        GameState.hiScore = parseInt(localStorage.getItem('marioHiScore')) || 0;
+    } else {
+        GameState.hiScore = 999999;
+    }
+
+    document.getElementById('hiScoreDisp').innerText = GameState.hiScore;
+    renderMenus();
+    renderHeroPreview();
+    renderEnemyInfo();
+}
+
 /* ============================================
    GAME LOOP
    ============================================ */
@@ -688,8 +912,18 @@ function gameLoop(timestamp) {
         GameState.player.slashAngle = (1 - GameState.player.slash / CONFIG.WEAPON.KATANA_DURATION) * Math.PI;
     }
     if (GameState.player.gunFlash > 0) GameState.player.gunFlash -= dt;
+    if (GameState.player.invincibleTime > 0) GameState.player.invincibleTime -= dt;
 
-    // Generate platforms and enemies
+    // Continuous firing
+    if (GameState.player.isFiring && GameState.player.atkCooldown <= 0 && GameState.gameActive) {
+        const hero = HEROES.find(h => h.name === GameState.selectedHero);
+        if (hero.weapon === 'Pistol' || hero.weapon === 'Assault Rifle' || hero.weapon === 'Ice Powers') {
+            GameState.bullets.push(createBullet(GameState.player.x, GameState.player.y, GameState.player.dir));
+            GameState.player.gunFlash = 0.1;
+            GameState.player.atkCooldown = (hero.weapon === 'Assault Rifle' || hero.weapon === 'Ice Powers') ? CONFIG.WEAPON.ATTACK_COOLDOWN * 0.5 : CONFIG.WEAPON.ATTACK_COOLDOWN;
+            GameState.audio.playBullet();
+        }
+    }
     generatePlatforms();
 
     // Update game state
@@ -744,41 +978,113 @@ function drawEnemies() {
     GameState.enemies.forEach(en => {
         if (!en.alive) return;
 
-        let color = '#222';
-        if (en.type === ENEMY_TYPES.TANK) color = '#f00';
-        else if (en.type === ENEMY_TYPES.FLYER) color = '#a0f';
-        else if (en.type === ENEMY_TYPES.RUNNER) color = '#ff8800';
-        else if (en.type === ENEMY_TYPES.FIRE) color = '#ff4444';
+        let baseColor = '#222';
+        if (en.type === ENEMY_TYPES.TANK) baseColor = '#d92b2b';
+        else if (en.type === ENEMY_TYPES.FLYER) baseColor = '#8a2be2';
+        else if (en.type === ENEMY_TYPES.RUNNER) baseColor = '#ff9800';
+        else if (en.type === ENEMY_TYPES.FIRE) baseColor = '#ff4444';
 
-        if (GameState.isRGB) color = `hsl(${(GameState.rgbHue + 180) % 360}, 100%, 50%)`;
+        if (GameState.isRGB) baseColor = `hsl(${(GameState.rgbHue + 180) % 360}, 100%, 50%)`;
 
-        GameState.ctx.fillStyle = color;
+        GameState.ctx.fillStyle = baseColor;
         GameState.ctx.fillRect(en.x, en.y, en.w, en.h);
 
-        // Fire enemy glow
+        // Tank: Armor plating
+        if (en.type === ENEMY_TYPES.TANK) {
+            GameState.ctx.strokeStyle = '#ffaaaa';
+            GameState.ctx.lineWidth = 2;
+            GameState.ctx.strokeRect(en.x - 2, en.y - 2, en.w + 4, en.h + 4);
+            // Armor details
+            GameState.ctx.fillStyle = '#b22222';
+            GameState.ctx.fillRect(en.x + 2, en.y + 2, en.w - 4, 4);
+            GameState.ctx.fillRect(en.x + 2, en.y + en.h - 6, en.w - 4, 4);
+        }
+
+        // Flyer: Wings and propeller
+        if (en.type === ENEMY_TYPES.FLYER) {
+            GameState.ctx.beginPath();
+            GameState.ctx.strokeStyle = '#f5f';
+            GameState.ctx.lineWidth = 2;
+            GameState.ctx.moveTo(en.x - 5, en.y + en.h - 4);
+            GameState.ctx.lineTo(en.x + en.w + 5, en.y + en.h - 4);
+            GameState.ctx.stroke();
+            // Wings
+            GameState.ctx.fillStyle = '#daa0ff';
+            GameState.ctx.fillRect(en.x - 8, en.y + 5, 6, en.h - 10);
+            GameState.ctx.fillRect(en.x + en.w + 2, en.y + 5, 6, en.h - 10);
+        }
+
+        // Runner: Speed lines
+        if (en.type === ENEMY_TYPES.RUNNER) {
+            GameState.ctx.strokeStyle = '#ffb366';
+            GameState.ctx.lineWidth = 1;
+            for (let i = 0; i < 3; i++) {
+                GameState.ctx.beginPath();
+                GameState.ctx.moveTo(en.x - 5 - i * 3, en.y + 5 + i * 3);
+                GameState.ctx.lineTo(en.x - 10 - i * 3, en.y + 5 + i * 3);
+                GameState.ctx.stroke();
+            }
+        }
+
+        // Fire enemy: Flames
         if (en.type === ENEMY_TYPES.FIRE) {
             GameState.ctx.fillStyle = 'rgba(255, 100, 100, 0.3)';
             GameState.ctx.beginPath();
             GameState.ctx.arc(en.x + en.w / 2, en.y + en.h / 2, 25, 0, Math.PI * 2);
             GameState.ctx.fill();
+            // Flame particles
+            GameState.ctx.fillStyle = '#ffaa00';
+            for (let i = 0; i < 3; i++) {
+                GameState.ctx.beginPath();
+                GameState.ctx.arc(en.x + en.w / 2 + (Math.random() - 0.5) * 20, en.y - 5 + i * 5, 3, 0, Math.PI * 2);
+                GameState.ctx.fill();
+            }
         }
 
-        // Eyes
-        GameState.ctx.fillStyle = '#fff';
-        GameState.ctx.fillRect(en.x + (en.speed > 0 ? 22 : 5), en.y + 8, 8, 8);
+        // Normal: Basic design
+        if (en.type === ENEMY_TYPES.NORMAL) {
+            // Simple eyes
+            GameState.ctx.fillStyle = '#fff';
+            const eyeX = en.speed > 0 ? en.x + en.w - 8 : en.x + 5;
+            const eyeY = en.y + 8;
+            GameState.ctx.fillRect(eyeX, eyeY, 8, 8);
+            GameState.ctx.fillStyle = '#000';
+            GameState.ctx.fillRect(eyeX + 2, eyeY + 2, 4, 4);
+        }
+
+        // Shared eyes for others
+        if (en.type !== ENEMY_TYPES.NORMAL) {
+            GameState.ctx.fillStyle = '#fff';
+            const eyeX = en.speed > 0 ? en.x + en.w - 8 : en.x + 5;
+            const eyeY = en.y + 8;
+            GameState.ctx.fillRect(eyeX, eyeY, 8, 8);
+            GameState.ctx.fillStyle = '#000';
+            GameState.ctx.fillRect(eyeX + 2, eyeY + 2, 4, 4);
+        }
     });
 }
 
 function drawEnemyProjectiles() {
     GameState.enemyProjectiles.forEach(ep => {
-        GameState.ctx.fillStyle = '#ff6b6b';
-        GameState.ctx.beginPath();
-        GameState.ctx.arc(ep.x, ep.y, ep.w / 2, 0, Math.PI * 2);
-        GameState.ctx.fill();
+        if (ep.isIce) {
+            // Draw ice projectile
+            GameState.ctx.fillStyle = '#a5f3fc';
+            GameState.ctx.beginPath();
+            GameState.ctx.arc(ep.x, ep.y, ep.w / 2, 0, Math.PI * 2);
+            GameState.ctx.fill();
+            GameState.ctx.strokeStyle = '#00d4ff';
+            GameState.ctx.lineWidth = 2;
+            GameState.ctx.stroke();
+        } else {
+            GameState.ctx.fillStyle = '#ff6b6b';
+            GameState.ctx.beginPath();
+            GameState.ctx.arc(ep.x, ep.y, ep.w / 2, 0, Math.PI * 2);
+            GameState.ctx.fill();
 
-        GameState.ctx.strokeStyle = 'rgba(255, 107, 107, 0.5)';
-        GameState.ctx.lineWidth = 2;
-        GameState.ctx.stroke();
+            GameState.ctx.strokeStyle = 'rgba(255, 107, 107, 0.5)';
+            GameState.ctx.lineWidth = 2;
+            GameState.ctx.stroke();
+        }
     });
 }
 
@@ -806,6 +1112,12 @@ function drawPlayer() {
         if (GameState.player.name === 'Diamond') {
             GameState.ctx.shadowBlur = 15;
             GameState.ctx.shadowColor = '#00d4ff';
+        } else if (GameState.player.name === 'Gold') {
+            GameState.ctx.shadowBlur = 10;
+            GameState.ctx.shadowColor = '#ffd700';
+        } else if (GameState.player.name === 'Ice') {
+            GameState.ctx.shadowBlur = 12;
+            GameState.ctx.shadowColor = '#a5f3fc';
         }
 
         // Body
@@ -816,13 +1128,33 @@ function drawPlayer() {
         GameState.ctx.fillStyle = '#ffdbac';
         GameState.ctx.fillRect(-GameState.player.w / 2 + 2, -GameState.player.h + 10, GameState.player.w - 4, GameState.player.h - 25);
 
-        // Hair
-        GameState.ctx.fillStyle = GameState.player.color;
-        GameState.ctx.fillRect(-GameState.player.w / 2, -GameState.player.h + 20, GameState.player.w, 12);
+        // Hair/Headwear
+        if (GameState.player.name === 'Ninja') {
+            GameState.ctx.fillStyle = '#000';
+            GameState.ctx.fillRect(-GameState.player.w / 2, -GameState.player.h + 20, GameState.player.w, 12);
+            // Ninja mask
+            GameState.ctx.fillRect(-GameState.player.w / 2 + 5, -GameState.player.h + 15, GameState.player.w - 10, 8);
+        } else {
+            GameState.ctx.fillStyle = GameState.player.color;
+            GameState.ctx.fillRect(-GameState.player.w / 2, -GameState.player.h + 20, GameState.player.w, 12);
+        }
 
-        // Hat
-        GameState.ctx.fillStyle = '#f00';
+        // Hat (for all heroes)
+        let hatColor = '#f00'; // Default red
+        if (GameState.player.name === 'Ninja') hatColor = '#000';
+        else if (GameState.player.name === 'Gold') hatColor = '#ffd700';
+        else if (GameState.player.name === 'Diamond') hatColor = '#00d4ff';
+        else if (GameState.player.name === 'Ice') hatColor = '#a5f3fc';
+        
+        GameState.ctx.fillStyle = hatColor;
         GameState.ctx.fillRect(-GameState.player.w / 2 - 2, -GameState.player.h + 5, GameState.player.w + 4, 10);
+
+        // Ice shield
+        if (GameState.player.name === 'Ice' && GameState.player.shield > 0) {
+            GameState.ctx.strokeStyle = '#a5f3fc';
+            GameState.ctx.lineWidth = 3;
+            GameState.ctx.strokeRect(-GameState.player.w / 2 - 5, -GameState.player.h - 5, GameState.player.w + 10, GameState.player.h + 10);
+        }
     }
 
     drawWeapon();
@@ -834,7 +1166,7 @@ function drawPlayer() {
 }
 
 function drawWeapon() {
-    if (GameState.selectedWeapon === 'Katana') {
+    if (GameState.player.weapon === 'Katana') {
         if (GameState.player.slash > 0) {
             GameState.ctx.save();
             GameState.ctx.rotate(GameState.player.dir === 1 ? GameState.player.slashAngle : -GameState.player.slashAngle);
@@ -888,7 +1220,7 @@ function drawWeapon() {
                 GameState.ctx.stroke();
             }
         }
-    } else if (GameState.selectedWeapon === 'Pistol') {
+    } else if (GameState.player.weapon === 'Pistol') {
         // Pistol barrel and body - realistic design
 
         // Main barrel
@@ -1012,6 +1344,105 @@ function drawWeapon() {
                 GameState.ctx.fill();
             }
         }
+    } else if (GameState.player.weapon === 'Assault Rifle') {
+        // Assault Rifle - bigger and longer like M416
+
+        // Main barrel (longer)
+        GameState.ctx.fillStyle = '#292929';
+        GameState.ctx.fillRect(GameState.player.dir * 14, -30, 45, 12);
+
+        // Barrel inner sleeve
+        GameState.ctx.fillStyle = '#404040';
+        GameState.ctx.fillRect(GameState.player.dir * 16, -28, 40, 8);
+
+        // Muzzle brake
+        GameState.ctx.fillStyle = '#666666';
+        GameState.ctx.fillRect(GameState.player.dir * 59, -31, 8, 14);
+
+        // Upper receiver / rail
+        GameState.ctx.fillStyle = '#686868';
+        GameState.ctx.fillRect(GameState.player.dir * 14, -35, 40, 5);
+
+        // Front sight
+        GameState.ctx.fillStyle = '#00ff00';
+        GameState.ctx.fillRect(GameState.player.dir * 45, -37, 3, 4);
+
+        // Rear sight
+        GameState.ctx.fillStyle = '#cccccc';
+        GameState.ctx.fillRect(GameState.player.dir * 20, -37, 6, 4);
+
+        // Lower receiver / body
+        GameState.ctx.fillStyle = '#2a2a2a';
+        GameState.ctx.fillRect(GameState.player.dir * 10, -20, 25, 16);
+
+        // Grip (bigger)
+        GameState.ctx.fillStyle = '#1e1e1e';
+        GameState.ctx.fillRect(GameState.player.dir * 8, -12, 15, 25);
+
+        // Grip shading
+        GameState.ctx.fillStyle = '#111';
+        GameState.ctx.fillRect(GameState.player.dir * 8, -12, 15, 5);
+
+        // Grip texturing
+        GameState.ctx.strokeStyle = '#444444';
+        GameState.ctx.lineWidth = 0.8;
+        for (let i = 0; i < 5; i++) {
+            GameState.ctx.beginPath();
+            GameState.ctx.moveTo(GameState.player.dir * 9, -7 + i * 4);
+            GameState.ctx.lineTo(GameState.player.dir * 22, -6 + i * 4);
+            GameState.ctx.stroke();
+        }
+
+        // Trigger guard
+        GameState.ctx.strokeStyle = '#595959';
+        GameState.ctx.lineWidth = 1.5;
+        GameState.ctx.beginPath();
+        GameState.ctx.moveTo(GameState.player.dir * 25, -15);
+        GameState.ctx.quadraticCurveTo(GameState.player.dir * 27, -10, GameState.player.dir * 24, -6);
+        GameState.ctx.stroke();
+
+        // Trigger
+        GameState.ctx.fillStyle = '#b4b4b4';
+        GameState.ctx.fillRect(GameState.player.dir * 23, -10, 2, 4);
+
+        // Stock (rear part)
+        GameState.ctx.fillStyle = '#333333';
+        GameState.ctx.fillRect(GameState.player.dir * -5, -25, 15, 10);
+
+        // Magazine
+        GameState.ctx.fillStyle = '#222222';
+        GameState.ctx.fillRect(GameState.player.dir * 12, 5, 8, 15);
+
+        // Muzzle flash effect (bigger for rifle)
+        if (GameState.player.gunFlash > 0) {
+            const flashSize = (1 - GameState.player.gunFlash / 0.1) * 30;
+            GameState.ctx.fillStyle = `rgba(255, 220, 90, ${Math.min(1, GameState.player.gunFlash * 8)})`;
+            GameState.ctx.beginPath();
+            GameState.ctx.arc(GameState.player.dir * 70, -25, flashSize, Math.PI * 0.2, Math.PI * 1.8);
+            GameState.ctx.fill();
+
+            GameState.ctx.fillStyle = `rgba(255, 255, 200, ${Math.min(1, GameState.player.gunFlash * 12)})`;
+            GameState.ctx.beginPath();
+            GameState.ctx.arc(GameState.player.dir * 69, -24, flashSize * 0.7, Math.PI * 0.2, Math.PI * 1.8);
+            GameState.ctx.fill();
+
+            GameState.ctx.fillStyle = `rgba(150, 150, 150, ${Math.max(0, GameState.player.gunFlash * 4 - 0.2)})`;
+            for (let i = 0; i < 4; i++) {
+                GameState.ctx.beginPath();
+                GameState.ctx.arc(GameState.player.dir * (69 + i * 3), -25 + (Math.random() - 0.5) * 6, 3 + i, 0, Math.PI * 2);
+                GameState.ctx.fill();
+            }
+        }
+
+        // Additional details
+        GameState.ctx.strokeStyle = '#1a1a1a';
+        GameState.ctx.lineWidth = 0.5;
+        for (let i = 0; i < 6; i++) {
+            GameState.ctx.beginPath();
+            GameState.ctx.moveTo(GameState.player.dir * 10, -18 + i * 2);
+            GameState.ctx.lineTo(GameState.player.dir * 15, -17 + i * 2);
+            GameState.ctx.stroke();
+        }
     }
 }
 
@@ -1053,6 +1484,10 @@ window.addEventListener('DOMContentLoaded', () => {
     
     loadHiScore();
     renderMenus();
+    renderHeroPreview();
     renderEnemyInfo();
+    document.getElementById('changeHeroBtn').onclick = openHeroSelection;
+    document.getElementById('closeHeroSelectionBtn').onclick = closeHeroSelection;
+    document.getElementById('toggleEnemyInfoBtn').onclick = toggleEnemyInfo;
     setupInputBindings();
 });
