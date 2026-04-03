@@ -148,7 +148,7 @@ canvas {
     letter-spacing: 2px;
 }
 
-.stat-label { color: #555; }
+.stat-label { color: #fff; }
 
 .stat-value {
     color: var(--neon-cyan);
@@ -276,7 +276,7 @@ canvas {
 .hub-label {
     font-size: 10px;
     letter-spacing: 3px;
-    color: #444;
+    color: #fff;
     margin-top: 10px;
     display: block;
     text-transform: uppercase;
@@ -298,7 +298,7 @@ canvas {
     padding: 8px 15px;
     background: var(--glass);
     border: 1px solid rgba(255,255,255,0.1);
-    color: #666;
+    color: #fff;
     font-size: 10px;
     font-weight: 700;
     border-radius: 4px;
@@ -627,6 +627,7 @@ canvas {
     font-size: 30px;
     color: white;
     border: 1px solid var(--border);
+    user-select: none;
 }
 
 .jump-btn {
@@ -644,6 +645,7 @@ canvas {
     font-weight: bold;
     border: 3px solid white;
     z-index: 10;
+    user-select: none;
 }
 
 .attack-btn {
@@ -661,6 +663,7 @@ canvas {
     font-weight: bold;
     border: 3px solid white;
     z-index: 10;
+    user-select: none;
 }
 
 .cust-btn {
