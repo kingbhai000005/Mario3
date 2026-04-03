@@ -808,13 +808,34 @@ function openTouchSettings() {
                 openButtonCustomizer();
             };
         }
+        const musicBtn = document.getElementById('openMusicBtn');
+        if (musicBtn) {
+            musicBtn.onclick = () => {
+                modal.classList.add('hidden');
+                openMusicSettings();
+            };
+        }
     }
+}
+
+function closeMusicSettings() {
+    const modal = document.getElementById('musicSettingsModal');
+    if (modal) modal.classList.add('hidden');
+    // Perhaps save the audio files or something
 }
 
 function closeTouchSettings() {
     saveTouchSettings();
     const modal = document.getElementById('touchSettingsModal');
     if (modal) modal.classList.add('hidden');
+}
+
+function openMusicSettings() {
+    const modal = document.getElementById('musicSettingsModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        // Load any saved audio if needed
+    }
 }
 
 function updatePreview() {

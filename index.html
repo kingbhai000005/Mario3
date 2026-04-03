@@ -82,10 +82,29 @@
         <div class="selection-modal">
             <h2 class="modal-title">TOUCH SETTINGS</h2>
             <div id="touchSettingsContent" style="color:#fff; font-size:12px; line-height:1.8;">
-                <p>One button to customize controls like Free Fire.</p>
-                <button id="openCustomizerBtn" class="system-chip" style="margin-top:10px;">CUSTOMIZE</button>
+                <p>Customize controls and audio settings.</p>
+                <button id="openCustomizerBtn" class="system-chip" style="margin-top:10px;">CUSTOMIZE CONTROLS</button>
+                <button id="openMusicBtn" class="system-chip" style="margin-top:10px;">MUSIC SETTINGS</button>
             </div>
             <button id="closeSettingsBtn" class="abort-btn" onclick="closeTouchSettings()">CLOSE</button>
+        </div>
+    </div>
+
+    <!-- MUSIC SETTINGS MODAL -->
+    <div id="musicSettingsModal" class="hero-selection-overlay hidden">
+        <div class="selection-modal">
+            <h2 class="modal-title">MUSIC SETTINGS</h2>
+            <div style="color:#fff; font-size:12px; line-height:1.8;">
+                <p>Upload custom sound files:</p>
+                <div style="margin-top:10px;">
+                    <label>1. Background Music: <input type="file" id="bgMusicInput" accept="audio/*"></label><br>
+                    <label>2. Jump Sound: <input type="file" id="jumpSoundInput" accept="audio/*"></label><br>
+                    <label>3. Attack Sound: <input type="file" id="attackSoundInput" accept="audio/*"></label><br>
+                    <label>4. Enemy Hit: <input type="file" id="enemyHitInput" accept="audio/*"></label><br>
+                    <label>5. Game Over: <input type="file" id="gameOverInput" accept="audio/*"></label><br>
+                </div>
+            </div>
+            <button id="closeMusicBtn" class="abort-btn" onclick="closeMusicSettings()">CLOSE</button>
         </div>
     </div>
 
