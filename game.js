@@ -602,6 +602,16 @@ function loadTouchSettings() {
     const saved = localStorage.getItem('marioTouchSettings');
     if (saved) {
         TouchSettings = JSON.parse(saved);
+        // Clamp positions to current screen size
+        const clamp = (val, max) => Math.max(0, Math.min(max, val));
+        TouchSettings.leftBtn.x = clamp(TouchSettings.leftBtn.x, window.innerWidth - TouchSettings.leftBtn.size);
+        TouchSettings.leftBtn.y = clamp(TouchSettings.leftBtn.y, window.innerHeight - TouchSettings.leftBtn.size);
+        TouchSettings.rightBtn.x = clamp(TouchSettings.rightBtn.x, window.innerWidth - TouchSettings.rightBtn.size);
+        TouchSettings.rightBtn.y = clamp(TouchSettings.rightBtn.y, window.innerHeight - TouchSettings.rightBtn.size);
+        TouchSettings.jumpBtn.x = clamp(TouchSettings.jumpBtn.x, window.innerWidth - TouchSettings.jumpBtn.size);
+        TouchSettings.jumpBtn.y = clamp(TouchSettings.jumpBtn.y, window.innerHeight - TouchSettings.jumpBtn.size);
+        TouchSettings.attackBtn.x = clamp(TouchSettings.attackBtn.x, window.innerWidth - TouchSettings.attackBtn.size);
+        TouchSettings.attackBtn.y = clamp(TouchSettings.attackBtn.y, window.innerHeight - TouchSettings.attackBtn.size);
     } else {
         // Set defaults based on current window
         TouchSettings = {
@@ -642,8 +652,11 @@ function openButtonCustomizer() {
         const el = document.getElementById(btn.id);
         if (!el) return;
         const settings = customizerSettings[btn.key];
-        el.style.left = settings.x + 'px';
-        el.style.top = settings.y + 'px';
+        // Clamp to current screen
+        const clampedX = Math.max(0, Math.min(areaWidth - settings.size, settings.x));
+        const clampedY = Math.max(0, Math.min(areaHeight - settings.size, settings.y));
+        el.style.left = clampedX + 'px';
+        el.style.top = clampedY + 'px';
         el.style.width = settings.size + 'px';
         el.style.height = settings.size + 'px';
         el.textContent = btn.label;
