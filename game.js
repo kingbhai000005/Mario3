@@ -626,6 +626,10 @@ function openButtonCustomizer() {
     if (!overlay) return;
     overlay.classList.remove('hidden');
 
+    const customizerArea = document.getElementById('customizerArea');
+    const areaWidth = customizerArea.offsetWidth;
+    const areaHeight = customizerArea.offsetHeight;
+
     const buttons = [
         { id: 'custLeft', key: 'leftBtn', label: '◀' },
         { id: 'custRight', key: 'rightBtn', label: '▶' },
@@ -633,14 +637,30 @@ function openButtonCustomizer() {
         { id: 'custAttack', key: 'attackBtn', label: 'STRIKE' }
     ];
 
+    // Default positions for customizer (scaled to fit the area)
+    const defaultPositions = {
+        leftBtn: { x: 20, y: areaHeight - 80 },
+        rightBtn: { x: 90, y: areaHeight - 80 },
+        jumpBtn: { x: areaWidth - 150, y: areaHeight - 100 },
+        attackBtn: { x: areaWidth - 80, y: areaHeight - 70 }
+    };
+
     buttons.forEach(btn => {
         const el = document.getElementById(btn.id);
         if (!el) return;
+        // Use scaled positions or defaults
+        const scaleX = areaWidth / window.innerWidth;
+        const scaleY = areaHeight / window.innerHeight;
         const settings = customizerSettings[btn.key];
-        el.style.left = settings.x + 'px';
-        el.style.top = settings.y + 'px';
-        el.style.width = settings.size + 'px';
-        el.style.height = settings.size + 'px';
+        let x = settings.x * scaleX;
+        let y = settings.y * scaleY;
+        // Ensure within bounds
+        x = Math.max(0, Math.min(areaWidth - 60, x));
+        y = Math.max(0, Math.min(areaHeight - 60, y));
+        el.style.left = x + 'px';
+        el.style.top = y + 'px';
+        el.style.width = '60px';
+        el.style.height = '60px';
         el.textContent = btn.label;
 
         let dragging = false;
@@ -659,14 +679,14 @@ function openButtonCustomizer() {
             if (!dragging) return;
             const x = e.clientX - offsetX;
             const y = e.clientY - offsetY;
-            const maxX = document.getElementById('customizerArea').offsetWidth - el.offsetWidth;
-            const maxY = document.getElementById('customizerArea').offsetHeight - el.offsetHeight;
+            const maxX = areaWidth - el.offsetWidth;
+            const maxY = areaHeight - el.offsetHeight;
             const limitedX = Math.max(0, Math.min(maxX, x));
             const limitedY = Math.max(0, Math.min(maxY, y));
             el.style.left = limitedX + 'px';
             el.style.top = limitedY + 'px';
-            customizerSettings[btn.key].x = limitedX;
-            customizerSettings[btn.key].y = limitedY;
+            customizerSettings[btn.key].x = limitedX / scaleX; // Scale back to full screen
+            customizerSettings[btn.key].y = limitedY / scaleY;
         };
 
         el.onpointerup = e => {
@@ -922,33 +942,38 @@ function setupInputBindings() {
         // Keep auto mode style: no release to stop firing
     };
 
-    // Touch controls
-    bindTouchButton('leftBtn', 'ArrowLeft');
-    bindTouchButton('rightBtn', 'ArrowRight');
-    document.getElementById('jumpBtn').ontouchstart = (e) => {
-        e.preventDefault();
-        handleJump();
-    };
-    document.getElementById('attackBtn').ontouchstart = (e) => {
-        e.preventDefault();
-        GameState.player.isFiring = !GameState.player.isFiring;
-        if (GameState.player.isFiring) handleAttack();
-    };
-    document.getElementById('attackBtn').ontouchend = (e) => {
-        e.preventDefault();
-        // no release-based disable; toggle remains until next press
-    };
+    // Touch controls using pointer events for better mobile support
+    bindPointerButton('leftBtn', 'ArrowLeft');
+    bindPointerButton('rightBtn', 'ArrowRight');
+    bindPointerButton('jumpBtn', 'jump');
+    bindPointerButton('attackBtn', 'attack');
 }
 
-function bindTouchButton(id, key) {
+function bindPointerButton(id, action) {
     const el = document.getElementById(id);
-    el.ontouchstart = (e) => {
+    if (!el) return;
+    el.onpointerdown = (e) => {
         e.preventDefault();
-        GameState.keys[key] = true;
+        if (action === 'ArrowLeft' || action === 'ArrowRight') {
+            GameState.keys[action] = true;
+        } else if (action === 'jump') {
+            handleJump();
+        } else if (action === 'attack') {
+            GameState.player.isFiring = !GameState.player.isFiring;
+            if (GameState.player.isFiring) handleAttack();
+        }
     };
-    el.ontouchend = (e) => {
+    el.onpointerup = (e) => {
         e.preventDefault();
-        GameState.keys[key] = false;
+        if (action === 'ArrowLeft' || action === 'ArrowRight') {
+            GameState.keys[action] = false;
+        }
+        // For jump and attack, no release action
+    };
+    el.onpointercancel = (e) => {
+        if (action === 'ArrowLeft' || action === 'ArrowRight') {
+            GameState.keys[action] = false;
+        }
     };
 }
 
@@ -2025,5 +2050,5 @@ window.addEventListener('DOMContentLoaded', () => {
     document.getElementById('toggleEnemyInfoBtn').onclick = toggleEnemyInfo;
     loadTouchSettings();
     setupInputBindings();
-    setupControlDrag();
+    // Removed setupControlDrag from here to prevent dragging during gameplay
 });
