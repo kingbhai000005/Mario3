@@ -173,7 +173,6 @@ const GameState = {
     selectedTheme: 'Day',
     isRGB: false,
     hiScore: 0,
-    autoFireMode: false,
 
     // Game objects
     player: null,
@@ -599,19 +598,19 @@ function toggleFullscreen() {
 let TouchSettings = {
     jumpSize: 60,
     attackSize: 60,
-    autoFire: false,
     leftBtn: { x: 20, y: window.innerHeight - 120, size: 60 },
     rightBtn: { x: 90, y: window.innerHeight - 120, size: 60 },
     jumpBtn: { x: window.innerWidth - 150, y: window.innerHeight - 150, size: 85 },
     attackBtn: { x: window.innerWidth - 80, y: window.innerHeight - 90, size: 85 }
 };
 
+let customizerSettings = null;
+
 function loadTouchSettings() {
     const saved = localStorage.getItem('marioTouchSettings');
     if (saved) {
         TouchSettings = JSON.parse(saved);
     }
-    GameState.autoFireMode = TouchSettings.autoFire;
     applyTouchSettings();
 }
 
@@ -619,6 +618,79 @@ function saveTouchSettings() {
     localStorage.setItem('marioTouchSettings', JSON.stringify(TouchSettings));
     applyTouchSettings();
 }
+
+function openButtonCustomizer() {
+    customizerSettings = JSON.parse(JSON.stringify(TouchSettings));
+
+    const overlay = document.getElementById('buttonCustomizerOverlay');
+    if (!overlay) return;
+    overlay.classList.remove('hidden');
+
+    const buttons = [
+        { id: 'custLeft', key: 'leftBtn', label: '◀' },
+        { id: 'custRight', key: 'rightBtn', label: '▶' },
+        { id: 'custJump', key: 'jumpBtn', label: 'JUMP' },
+        { id: 'custAttack', key: 'attackBtn', label: 'STRIKE' }
+    ];
+
+    buttons.forEach(btn => {
+        const el = document.getElementById(btn.id);
+        if (!el) return;
+        const settings = customizerSettings[btn.key];
+        el.style.left = settings.x + 'px';
+        el.style.top = settings.y + 'px';
+        el.style.width = settings.size + 'px';
+        el.style.height = settings.size + 'px';
+        el.textContent = btn.label;
+
+        let dragging = false;
+        let offsetX = 0;
+        let offsetY = 0;
+
+        el.onpointerdown = e => {
+            e.preventDefault();
+            dragging = true;
+            offsetX = e.clientX - el.getBoundingClientRect().left;
+            offsetY = e.clientY - el.getBoundingClientRect().top;
+            el.setPointerCapture(e.pointerId);
+        };
+
+        el.onpointermove = e => {
+            if (!dragging) return;
+            const x = e.clientX - offsetX;
+            const y = e.clientY - offsetY;
+            const maxX = document.getElementById('customizerArea').offsetWidth - el.offsetWidth;
+            const maxY = document.getElementById('customizerArea').offsetHeight - el.offsetHeight;
+            const limitedX = Math.max(0, Math.min(maxX, x));
+            const limitedY = Math.max(0, Math.min(maxY, y));
+            el.style.left = limitedX + 'px';
+            el.style.top = limitedY + 'px';
+            customizerSettings[btn.key].x = limitedX;
+            customizerSettings[btn.key].y = limitedY;
+        };
+
+        el.onpointerup = e => {
+            dragging = false;
+            el.releasePointerCapture(e.pointerId);
+        };
+
+        el.onpointercancel = () => {
+            dragging = false;
+        };
+    });
+
+    document.getElementById('saveCustomizerBtn').onclick = () => {
+        TouchSettings = JSON.parse(JSON.stringify(customizerSettings));
+        saveTouchSettings();
+        overlay.classList.add('hidden');
+        applyTouchSettings();
+    };
+
+    document.getElementById('exitCustomizerBtn').onclick = () => {
+        overlay.classList.add('hidden');
+    };
+}
+
 
 function applyTouchSettings() {
     const leftBtn = document.getElementById('leftBtn');
@@ -711,54 +783,13 @@ function openTouchSettings() {
     const modal = document.getElementById('touchSettingsModal');
     if (modal) {
         modal.classList.remove('hidden');
-        document.getElementById('jumpSizeSlider').value = TouchSettings.jumpSize;
-        document.getElementById('attackSizeSlider').value = TouchSettings.attackSize;
-        document.getElementById('jumpSizeVal').innerText = TouchSettings.jumpSize;
-        document.getElementById('attackSizeVal').innerText = TouchSettings.attackSize;
-
-        const autoBtn = document.getElementById('toggleAutoFireBtn');
-        if (autoBtn) {
-            autoBtn.textContent = `Auto Fire: ${TouchSettings.autoFire ? 'ON' : 'OFF'}`;
-            autoBtn.onclick = () => {
-                TouchSettings.autoFire = !TouchSettings.autoFire;
-                GameState.autoFireMode = TouchSettings.autoFire;
-                autoBtn.textContent = `Auto Fire: ${TouchSettings.autoFire ? 'ON' : 'OFF'}`;
-                saveTouchSettings();
+        const customBtn = document.getElementById('openCustomizerBtn');
+        if (customBtn) {
+            customBtn.onclick = () => {
+                modal.classList.add('hidden');
+                openButtonCustomizer();
             };
         }
-
-        updatePreview();
-        
-        // Add event listeners
-        document.getElementById('leftSizeSlider').oninput = () => {
-            const v = parseInt(document.getElementById('leftSizeSlider').value);
-            TouchSettings.leftBtn.size = v;
-            document.getElementById('leftSizeVal').innerText = v;
-            applyTouchSettings();
-            updatePreview();
-        };
-        document.getElementById('rightSizeSlider').oninput = () => {
-            const v = parseInt(document.getElementById('rightSizeSlider').value);
-            TouchSettings.rightBtn.size = v;
-            document.getElementById('rightSizeVal').innerText = v;
-            applyTouchSettings();
-            updatePreview();
-        };
-        document.getElementById('jumpSizeSlider').oninput = () => {
-            const v = parseInt(document.getElementById('jumpSizeSlider').value);
-            TouchSettings.jumpBtn.size = v;
-            document.getElementById('jumpSizeVal').innerText = v;
-            applyTouchSettings();
-            updatePreview();
-        };
-        
-        document.getElementById('attackSizeSlider').oninput = () => {
-            const v = parseInt(document.getElementById('attackSizeSlider').value);
-            TouchSettings.attackBtn.size = v;
-            document.getElementById('attackSizeVal').innerText = v;
-            applyTouchSettings();
-            updatePreview();
-        };
     }
 }
 
@@ -882,18 +913,13 @@ function setupInputBindings() {
         GameState.keys[e.code] = true;
         if (['Space', 'ArrowUp', 'KeyW'].includes(e.code)) handleJump();
         if (e.code === 'KeyE') {
-            if (GameState.autoFireMode) {
-                GameState.player.isFiring = !GameState.player.isFiring;
-            } else {
-                handleAttack();
-            }
+            GameState.player.isFiring = !GameState.player.isFiring;
+            if (GameState.player.isFiring) handleAttack();
         }
     };
     window.onkeyup = (e) => {
         GameState.keys[e.code] = false;
-        if (e.code === 'KeyE' && !GameState.autoFireMode) {
-            GameState.player.isFiring = false; // Stop continuous fire
-        }
+        // Keep auto mode style: no release to stop firing
     };
 
     // Touch controls
@@ -905,18 +931,12 @@ function setupInputBindings() {
     };
     document.getElementById('attackBtn').ontouchstart = (e) => {
         e.preventDefault();
-        if (GameState.autoFireMode) {
-            GameState.player.isFiring = !GameState.player.isFiring;
-        } else {
-            handleAttack();
-            GameState.player.isFiring = true;
-        }
+        GameState.player.isFiring = !GameState.player.isFiring;
+        if (GameState.player.isFiring) handleAttack();
     };
     document.getElementById('attackBtn').ontouchend = (e) => {
         e.preventDefault();
-        if (!GameState.autoFireMode) {
-            GameState.player.isFiring = false;
-        }
+        // no release-based disable; toggle remains until next press
     };
 }
 

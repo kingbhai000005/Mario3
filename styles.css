@@ -655,6 +655,26 @@ canvas {
     background: rgba(255, 204, 0, 0.6);
     border-radius: 50%;
     display: flex;
+
+.cust-btn {
+    position: absolute;
+    width: 60px;
+    height: 60px;
+    background: var(--glass);
+    border: 2px solid var(--neon-cyan);
+    border-radius: 12px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    user-select: none;
+    touch-action: none;
+    cursor: grab;
+}
+
+.cust-btn:active {
+    cursor: grabbing;
+}
     justify-content: center;
     align-items: center;
     color: white;

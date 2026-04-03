@@ -80,18 +80,30 @@
     <!-- TOUCH CONTROLS SETTINGS MODAL -->
     <div id="touchSettingsModal" class="hero-selection-overlay hidden">
         <div class="selection-modal">
-            <h2 class="modal-title">TOUCH CONTROLS</h2>
+            <h2 class="modal-title">TOUCH SETTINGS</h2>
             <div id="touchSettingsContent" style="color:#fff; font-size:12px; line-height:1.8;">
-                <p>Drag any button on screen to set position.</p>
-                <p>Left size: <input type="range" id="leftSizeSlider" min="30" max="100" value="60" style="width:100px;"> <span id="leftSizeVal">60</span>px</p>
-                <p>Right size: <input type="range" id="rightSizeSlider" min="30" max="100" value="60" style="width:100px;"> <span id="rightSizeVal">60</span>px</p>
-                <p>Jump size: <input type="range" id="jumpSizeSlider" min="30" max="100" value="60" style="width:100px;"> <span id="jumpSizeVal">60</span>px</p>
-                <p>Strike size: <input type="range" id="attackSizeSlider" min="30" max="100" value="60" style="width:100px;"> <span id="attackSizeVal">60</span>px</p>
-                <p><button id="toggleAutoFireBtn" class="system-chip" style="margin-top:8px;">Auto Fire: OFF</button></p>
-                <p style="margin-top:15px; color:#a5f3fc;">Preview:</p>
-                <div id="controlsPreview" style="height:120px; background:#0a0a0a; border:1px solid #333; border-radius:8px; position:relative; overflow:hidden;"></div>
+                <p>One button to customize controls like Free Fire.</p>
+                <button id="openCustomizerBtn" class="system-chip" style="margin-top:10px;">CUSTOMIZE</button>
             </div>
-            <button id="closeSettingsBtn" class="abort-btn" onclick="closeTouchSettings()">SAVE & CLOSE</button>
+            <button id="closeSettingsBtn" class="abort-btn" onclick="closeTouchSettings()">CLOSE</button>
+        </div>
+    </div>
+
+    <!-- BUTTON CUSTOMIZATION OVERLAY -->
+    <div id="buttonCustomizerOverlay" class="hero-selection-overlay hidden">
+        <div class="selection-modal" style="max-height: 80vh; overflow: hidden;">
+            <h2 class="modal-title">CUSTOMIZE BUTTONS</h2>
+            <p style="color:#fff; font-size:12px;">Drag buttons to new position. Press SAVE to keep, EXIT to cancel.</p>
+            <div id="customizerArea" style="position:relative; width:100%; height:280px; background:#020408; border:1px solid #444; border-radius:10px; overflow:hidden;">
+                <div id="custLeft" class="cust-btn">◀</div>
+                <div id="custRight" class="cust-btn">▶</div>
+                <div id="custJump" class="cust-btn">JUMP</div>
+                <div id="custAttack" class="cust-btn">STRIKE</div>
+            </div>
+            <div style="display:flex; gap:12px; justify-content:center; margin-top:12px;">
+                <button id="saveCustomizerBtn" class="mega-launch-btn">SAVE</button>
+                <button id="exitCustomizerBtn" class="cyber-outline-btn">EXIT</button>
+            </div>
         </div>
     </div>
 </div>
