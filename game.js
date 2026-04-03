@@ -198,7 +198,8 @@ const GameState = {
     showEnemyInfo: false,
     testMode: false,
     rgbAnimIndex: 0,
-    rgbAnimInterval: null
+    rgbAnimInterval: null,
+    slashTrail: [] // For Ninja's katana trail effect
 };
 
 /* ============================================
@@ -1126,8 +1127,10 @@ function handleAttack() {
     if (hero.weapon === 'Katana') {
         GameState.player.slash = CONFIG.WEAPON.KATANA_DURATION;
         GameState.player.slashAngle = 0;
-        GameState.player.atkCooldown = CONFIG.WEAPON.ATTACK_COOLDOWN;
+        // Faster cooldown for Ninja for continuous attacks
+        GameState.player.atkCooldown = GameState.player.name === 'Ninja' ? CONFIG.WEAPON.ATTACK_COOLDOWN * 0.3 : CONFIG.WEAPON.ATTACK_COOLDOWN * 0.5;
         GameState.audio.playKatana();
+        GameState.player.isFiring = true;
     } else if (['Pistol','Assault Rifle','Ice Powers','M416','Fire Powers','Triple Barrel Gun'].includes(hero.weapon)) {
         if (!GameState.player.isFiring) {
             if (hero.weapon === 'M416') {
@@ -1316,10 +1319,17 @@ function updateEnemies(dt) {
     GameState.enemies.forEach(en => {
         if (!en.alive) return;
 
-        // Katana damage
+        // Katana damage - enhanced for Ninja
         if (GameState.player.slash > 0 && Math.abs(GameState.player.x - en.x) < 95 && Math.abs(GameState.player.y - en.y) < 55) {
-            en.alive = false;
-            GameState.score += CONFIG.SCORE.BULLET_KILL;
+            if (GameState.player.name === 'Ninja') {
+                // Ninja gets instant kill with extra score bonus
+                en.alive = false;
+                GameState.score += CONFIG.SCORE.BULLET_KILL * 3; // 3x bonus for Ninja
+                GameState.audio.playKatana();
+            } else {
+                en.alive = false;
+                GameState.score += CONFIG.SCORE.BULLET_KILL;
+            }
         }
 
         // Enemy collision with player
@@ -1503,7 +1513,12 @@ function gameLoop(timestamp) {
     // Continuous firing
     if (GameState.player.isFiring && GameState.player.atkCooldown <= 0 && GameState.gameActive) {
         const hero = HEROES.find(h => h.name === GameState.selectedHero);
-        if (hero.weapon === 'Pistol' || hero.weapon === 'Assault Rifle' || hero.weapon === 'Ice Powers' || hero.weapon === 'M416') {
+        if (hero.weapon === 'Katana') {
+            GameState.player.slash = CONFIG.WEAPON.KATANA_DURATION;
+            GameState.player.slashAngle = 0;
+            GameState.player.atkCooldown = GameState.player.name === 'Ninja' ? CONFIG.WEAPON.ATTACK_COOLDOWN * 0.3 : CONFIG.WEAPON.ATTACK_COOLDOWN * 0.5;
+            GameState.audio.playKatana();
+        } else if (hero.weapon === 'Pistol' || hero.weapon === 'Assault Rifle' || hero.weapon === 'Ice Powers' || hero.weapon === 'M416') {
             GameState.bullets.push(createBullet(GameState.player.x, GameState.player.y, GameState.player.dir));
             GameState.player.gunFlash = 0.1;
             GameState.player.atkCooldown = (hero.weapon === 'Assault Rifle' || hero.weapon === 'Ice Powers' || hero.weapon === 'M416') ? CONFIG.WEAPON.ATTACK_COOLDOWN * 0.2 : CONFIG.WEAPON.ATTACK_COOLDOWN;
@@ -1780,58 +1795,143 @@ function drawPlayer() {
 
 function drawWeapon() {
     if (GameState.player.weapon === 'Katana') {
+        const weaponOffsetX = GameState.player.dir * 15 - GameState.player.w / 2;
+        const weaponOffsetY = -GameState.player.h - 10;
+        const arcBaseX = GameState.player.dir * 20 - GameState.player.w / 2;
+        const arcBaseY = -GameState.player.h - 15;
+
         if (GameState.player.slash > 0) {
+            const progress = 1 - (GameState.player.slash / CONFIG.WEAPON.KATANA_DURATION);
+            
+            // Slash arc trail for professional effect
+            if (GameState.player.name === 'Ninja') {
+                // Multiple arc trails
+                for (let i = 0; i < 3; i++) {
+                    GameState.ctx.strokeStyle = `rgba(255, 50, 150, ${(GameState.player.slash - i * 0.05) * (2 - i * 0.3)})`;
+                    GameState.ctx.lineWidth = 4 - i;
+                    GameState.ctx.beginPath();
+                    const radius = 45 + i * 8;
+                    GameState.ctx.arc(arcBaseX, arcBaseY, radius, 
+                        GameState.player.dir === 1 ? -Math.PI/2 + progress * Math.PI : Math.PI/2 - progress * Math.PI,
+                        GameState.player.dir === 1 ? Math.PI/2 + progress * Math.PI : 3*Math.PI/2 - progress * Math.PI);
+                    GameState.ctx.stroke();
+                }
+            }
+            
             GameState.ctx.save();
+            GameState.ctx.translate(weaponOffsetX, weaponOffsetY);
             GameState.ctx.rotate(GameState.player.dir === 1 ? GameState.player.slashAngle : -GameState.player.slashAngle);
             
-            // Blade - main body with gradient
-            GameState.ctx.fillStyle = '#e8e8e8';
-            GameState.ctx.fillRect(GameState.player.dir * 15, -40, 6, 50);
-            
-            // Blade shine/edge
-            GameState.ctx.fillStyle = '#ffffff';
-            GameState.ctx.fillRect(GameState.player.dir * 15, -40, 2, 50);
-            
-            // Blade shadow
-            GameState.ctx.fillStyle = '#999999';
-            GameState.ctx.fillRect(GameState.player.dir * 16.5, -40, 1.5, 50);
-            
-            // Sword glow during attack
-            GameState.ctx.strokeStyle = `rgba(100, 200, 255, ${GameState.player.slash * 2})`;
-            GameState.ctx.lineWidth = 3;
-            GameState.ctx.strokeRect(GameState.player.dir * 14, -41, 8, 52);
+            // Professional blade with tapered design
+            if (GameState.player.name === 'Ninja') {
+                // Ninja blade - crimson with gradient effect
+                GameState.ctx.fillStyle = '#cc0033';
+                GameState.ctx.beginPath();
+                GameState.ctx.moveTo(0, -45);
+                GameState.ctx.lineTo(8, -40);
+                GameState.ctx.lineTo(6, 35);
+                GameState.ctx.lineTo(0, 40);
+                GameState.ctx.closePath();
+                GameState.ctx.fill();
+                
+                // Bright edge highlight
+                GameState.ctx.fillStyle = '#ff6699';
+                GameState.ctx.beginPath();
+                GameState.ctx.moveTo(2, -42);
+                GameState.ctx.lineTo(4, -40);
+                GameState.ctx.lineTo(3, 35);
+                GameState.ctx.lineTo(1, 37);
+                GameState.ctx.closePath();
+                GameState.ctx.fill();
+                
+                // Dark shadow edge
+                GameState.ctx.fillStyle = '#660011';
+                GameState.ctx.beginPath();
+                GameState.ctx.moveTo(6, -40);
+                GameState.ctx.lineTo(7, -38);
+                GameState.ctx.lineTo(5.5, 37);
+                GameState.ctx.lineTo(4.5, 39);
+                GameState.ctx.closePath();
+                GameState.ctx.fill();
+                
+                // Intense slash glow
+                GameState.ctx.shadowBlur = 20;
+                GameState.ctx.shadowColor = `rgba(255, 50, 150, ${GameState.player.slash * 4})`;
+                GameState.ctx.strokeStyle = `rgba(255, 100, 200, ${GameState.player.slash * 3})`;
+                GameState.ctx.lineWidth = 8;
+                GameState.ctx.beginPath();
+                GameState.ctx.moveTo(4, -40);
+                GameState.ctx.quadraticCurveTo(15, 0, 4, 35);
+                GameState.ctx.stroke();
+            } else {
+                // Regular blade
+                GameState.ctx.fillStyle = '#d0d0d0';
+                GameState.ctx.beginPath();
+                GameState.ctx.moveTo(0, -45);
+                GameState.ctx.lineTo(7, -40);
+                GameState.ctx.lineTo(5, 35);
+                GameState.ctx.lineTo(0, 40);
+                GameState.ctx.closePath();
+                GameState.ctx.fill();
+                
+                // Shine
+                GameState.ctx.fillStyle = '#ffffff';
+                GameState.ctx.beginPath();
+                GameState.ctx.moveTo(1, -42);
+                GameState.ctx.lineTo(3, -40);
+                GameState.ctx.lineTo(2, 35);
+                GameState.ctx.lineTo(0, 37);
+                GameState.ctx.closePath();
+                GameState.ctx.fill();
+            }
             
             GameState.ctx.restore();
         } else {
-            // Resting position - more detailed
-            GameState.ctx.fillStyle = '#d0d0d0';
-            GameState.ctx.fillRect(GameState.player.dir * 15, -35, 6, 40);
+            // Resting position - sheathed
+            const weaponOffsetX = GameState.player.dir * 15 - GameState.player.w / 2;
+            const weaponOffsetY = -GameState.player.h - 5;
+            GameState.ctx.save();
+            GameState.ctx.translate(weaponOffsetX, weaponOffsetY);
             
-            // Blade shine
-            GameState.ctx.fillStyle = '#ffffff';
-            GameState.ctx.fillRect(GameState.player.dir * 15, -35, 2, 40);
-            
-            // Blade shadow
-            GameState.ctx.fillStyle = '#808080';
-            GameState.ctx.fillRect(GameState.player.dir * 19, -35, 1, 40);
-            
-            // Handle/Guard - golden
-            GameState.ctx.fillStyle = '#ffd700';
-            GameState.ctx.fillRect(GameState.player.dir * 13, 2, 10, 5);
-            
-            // Handle grip - brown
-            GameState.ctx.fillStyle = '#8b4513';
-            GameState.ctx.fillRect(GameState.player.dir * 15, 7, 6, 10);
-            
-            // Handle grip texture lines
-            GameState.ctx.strokeStyle = '#654321';
-            GameState.ctx.lineWidth = 1;
-            for (let i = 0; i < 3; i++) {
+            if (GameState.player.name === 'Ninja') {
+                // Sheath - black with gold accent
+                GameState.ctx.fillStyle = '#0a0a0a';
+                GameState.ctx.fillRect(GameState.player.dir * -2, -35, 8, 45);
+                GameState.ctx.strokeStyle = '#ffd700';
+                GameState.ctx.lineWidth = 2;
+                GameState.ctx.strokeRect(GameState.player.dir * -2, -35, 8, 45);
+                
+                // Blade peeking
+                GameState.ctx.fillStyle = '#cc0033';
+                GameState.ctx.fillRect(GameState.player.dir * 2, -37, 4, 50);
+                GameState.ctx.fillStyle = '#ff6699';
+                GameState.ctx.fillRect(GameState.player.dir * 3, -36, 1.5, 48);
+                
+                // Handle - premium look
+                GameState.ctx.fillStyle = '#1a1a1a';
+                GameState.ctx.fillRect(GameState.player.dir * 1, 8, 6, 12);
+                GameState.ctx.fillStyle = '#ffd700';
                 GameState.ctx.beginPath();
-                GameState.ctx.moveTo(GameState.player.dir * 15, 8 + i * 2);
-                GameState.ctx.lineTo(GameState.player.dir * 21, 8 + i * 2);
+                GameState.ctx.arc(GameState.player.dir * 4, 14, 3.5, 0, Math.PI * 2);
+                GameState.ctx.fill();
+                GameState.ctx.strokeStyle = '#ffed4e';
+                GameState.ctx.lineWidth = 1;
                 GameState.ctx.stroke();
+            } else {
+                // Regular resting
+                GameState.ctx.fillStyle = '#b0b0b0';
+                GameState.ctx.fillRect(GameState.player.dir * -2, -35, 8, 45);
+                GameState.ctx.fillStyle = '#ffffff';
+                GameState.ctx.fillRect(GameState.player.dir * 1, -35, 2, 45);
+                GameState.ctx.fillStyle = '#707070';
+                GameState.ctx.fillRect(GameState.player.dir * 5, -35, 1, 45);
+                
+                GameState.ctx.fillStyle = '#ffd700';
+                GameState.ctx.fillRect(GameState.player.dir * 0, 8, 8, 5);
+                GameState.ctx.fillStyle = '#8b4513';
+                GameState.ctx.fillRect(GameState.player.dir * 1, 13, 6, 10);
             }
+            GameState.ctx.restore();
         }
     } else if (GameState.player.weapon === 'Ice Powers') {
         // Ice gun - frosty blue design
