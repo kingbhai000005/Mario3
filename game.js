@@ -44,7 +44,10 @@ const HEROES = [
     { name: 'Ninja', color: '#333', overall: '#111', req: 4000, weapon: 'Katana', power: 'Swift katana strikes', icon: '🥷' },
     { name: 'Gold', color: '#ffd700', overall: '#ff8c00', req: 8000, weapon: 'Pistol', power: 'Accurate pistol shots', icon: '🔫' },
     { name: 'Diamond', color: '#b9f2ff', overall: '#00d4ff', req: 12000, weapon: 'Assault Rifle', power: 'Double pistol fire rate', icon: '🔧' },
-    { name: 'Ice', color: '#ffffff', overall: '#a5f3fc', req: 20000, weapon: 'Ice Powers', power: 'Ice shield breaks for 2s invincibility', icon: '❄️' }
+    { name: 'Ice', color: '#ffffff', overall: '#a5f3fc', req: 20000, weapon: 'Ice Powers', power: 'Ice shield breaks for 2s invincibility', icon: '❄️' },
+    { name: 'Fire', color: '#ff4500', overall: '#8b0000', req: 25000, weapon: 'Fire Powers', power: 'Shoots fireballs from both sides simultaneously', icon: '🔥' },
+    { name: 'Machine', color: '#000000', overall: '#333333', req: 30000, weapon: 'M416', power: 'Machine gun fire rate with black armor', icon: '🔫' },
+    { name: 'Alien', color: '#00ff00', overall: '#006400', req: 35000, weapon: 'Triple Barrel Gun', power: 'Shoots in 3 directions: straight, up slanted, down slanted', icon: '👽' }
 ];
 
 const ENEMY_TYPES = {
@@ -235,8 +238,8 @@ function createPlayer() {
         slashAngle: 0,
         atkCooldown: 0,
         gunFlash: 0,
-        shield: hero.name === 'Ice' ? 1 : 0, // Ice has shield
-        invincibleTime: 0, // For Ice invincibility after shield break
+        shield: (['Ice', 'Fire', 'Machine', 'Alien'].includes(hero.name)) ? 1 : 0, // All late heroes now have shield
+        invincibleTime: 0, // For shield invincibility after break
         isFiring: false // For continuous fire
     };
 }
@@ -290,14 +293,18 @@ function createEnemy(type, x, y, platformWidth, platformX) {
     };
 }
 
-function createBullet(fromX, fromY, dirX) {
+function createBullet(fromX, fromY, dirX, angle = 0) {
+    const speed = CONFIG.WEAPON.PISTOL_SPEED;
+    const dx = dirX * speed * Math.cos(angle);
+    const dy = speed * Math.sin(angle);
     return {
         x: fromX + (dirX * 30),
         y: fromY + 22,
-        dx: dirX * 950,
+        dx: dx,
+        dy: dy,
         w: 12,
         h: 6,
-        life: 0.3
+        life: 0.6 // increased bullet range for players
     };
 }
 
@@ -309,7 +316,7 @@ function createProjectile(fromX, fromY, dirX, dirY) {
         dy: dirY * CONFIG.SCORE.PROJECTILE_SPEED,
         w: 15,
         h: 15,
-        life: 5
+        life: 3 // reduced fire enemy projectile range
     };
 }
 
@@ -407,7 +414,7 @@ function renderHeroSelection() {
         card.style.flexDirection = 'column';
         card.style.justifyContent = 'space-between';
         card.style.padding = '10px';
-        card.innerHTML = `<div style="display:flex; align-items:center; gap:8px;"><div style="font-size:24px; line-height:1;">${h.icon}</div><div style="flex:1;"><div style="font-size:12px; font-weight:bold; margin-bottom:2px;">${h.name}</div><small style="color:#ccc; font-size:10px;">${h.power}</small></div></div><div style="font-size:10px;color:#bff; margin-top:4px;">${isLocked ? 'LOCKED 🔒' : 'Ready'}</div>`;
+        card.innerHTML = `<div style="display:flex; align-items:center; gap:8px;"><div style="font-size:24px; line-height:1;">${h.icon}</div><div style="flex:1;"><div style="font-size:12px; font-weight:bold; margin-bottom:2px;">${h.name}</div><small style="color:#ccc; font-size:10px;">${h.power}</small></div></div><div style="font-size:10px;color:#bff; margin-top:4px;">${isLocked ? `LOCKED 🔒 (Req: ${h.req})` : 'Ready'}</div>`;
 
         if (!isLocked) {
             card.onclick = () => {
@@ -724,11 +731,32 @@ function handleAttack() {
         GameState.player.slashAngle = 0;
         GameState.player.atkCooldown = CONFIG.WEAPON.ATTACK_COOLDOWN;
         GameState.audio.playKatana();
-    } else if (hero.weapon === 'Pistol' || hero.weapon === 'Assault Rifle' || hero.weapon === 'Ice Powers') {
+    } else if (['Pistol','Assault Rifle','Ice Powers','M416','Fire Powers','Triple Barrel Gun'].includes(hero.weapon)) {
         if (!GameState.player.isFiring) {
-            GameState.bullets.push(createBullet(GameState.player.x, GameState.player.y, GameState.player.dir));
-            GameState.player.gunFlash = 0.1;
-            GameState.player.atkCooldown = (hero.weapon === 'Assault Rifle' || hero.weapon === 'Ice Powers') ? CONFIG.WEAPON.ATTACK_COOLDOWN * 0.5 : CONFIG.WEAPON.ATTACK_COOLDOWN;
+            if (hero.weapon === 'M416') {
+                // Machine gun: faster rate
+                GameState.bullets.push(createBullet(GameState.player.x, GameState.player.y, GameState.player.dir));
+                GameState.player.gunFlash = 0.1;
+                GameState.player.atkCooldown = CONFIG.WEAPON.ATTACK_COOLDOWN * 0.2;
+            } else if (hero.weapon === 'Fire Powers') {
+                // Fire: shoots from both sides
+                GameState.bullets.push(createBullet(GameState.player.x, GameState.player.y, -1));
+                GameState.bullets.push(createBullet(GameState.player.x, GameState.player.y, 1));
+                GameState.player.gunFlash = 0.1;
+                GameState.player.atkCooldown = CONFIG.WEAPON.ATTACK_COOLDOWN * 0.25;
+            } else if (hero.weapon === 'Triple Barrel Gun') {
+                // Alien: shoots in 3 directions
+                GameState.bullets.push(createBullet(GameState.player.x, GameState.player.y, GameState.player.dir));
+                GameState.bullets.push(createBullet(GameState.player.x, GameState.player.y, GameState.player.dir, -0.4));
+                GameState.bullets.push(createBullet(GameState.player.x, GameState.player.y, GameState.player.dir, 0.4));
+                GameState.player.gunFlash = 0.1;
+                GameState.player.atkCooldown = CONFIG.WEAPON.ATTACK_COOLDOWN * 0.15; // faster alien fire
+            } else {
+                // Pistol, Assault Rifle, Ice Powers
+                GameState.bullets.push(createBullet(GameState.player.x, GameState.player.y, GameState.player.dir));
+                GameState.player.gunFlash = 0.1;
+                GameState.player.atkCooldown = (hero.weapon === 'Assault Rifle' || hero.weapon === 'Ice Powers') ? CONFIG.WEAPON.ATTACK_COOLDOWN * 0.2 : CONFIG.WEAPON.ATTACK_COOLDOWN;
+            }
             GameState.audio.playBullet();
             GameState.player.isFiring = true;
         }
@@ -820,6 +848,7 @@ function updatePlayer(dt) {
 function updateBullets(dt) {
     GameState.bullets.forEach((b, bi) => {
         b.x += b.dx * dt;
+        b.y += (b.dy || 0) * dt;
         b.life -= dt;
 
         GameState.enemies.forEach((en, ei) => {
@@ -872,7 +901,7 @@ function updateEnemyProjectiles(dt) {
             GameState.player.y < ep.y + ep.h && GameState.player.y + GameState.player.h > ep.y) {
             GameState.enemyProjectiles.splice(epi, 1);
 
-            if (GameState.player.name === 'Ice' && GameState.player.shield > 0) {
+            if ((['Ice', 'Fire', 'Machine', 'Alien'].includes(GameState.player.name)) && GameState.player.shield > 0) {
                 GameState.player.shield = 0;
                 GameState.player.invincibleTime = 2;
                 GameState.player.dy = -400;
@@ -904,8 +933,8 @@ function updateEnemies(dt) {
                 GameState.player.dy = -600;
                 GameState.score += CONFIG.SCORE.STOMP_KILL;
             } else {
-                // Ice shield protection
-                if (GameState.player.name === 'Ice' && GameState.player.shield > 0) {
+                // All hero shields protection (Ice, Fire, Machine, Alien)
+                if ((['Ice', 'Fire', 'Machine', 'Alien'].includes(GameState.player.name)) && GameState.player.shield > 0) {
                     GameState.player.shield = 0;
                     GameState.player.invincibleTime = 2;
                     GameState.player.dy = -400; // Bounce back
@@ -1077,10 +1106,23 @@ function gameLoop(timestamp) {
     // Continuous firing
     if (GameState.player.isFiring && GameState.player.atkCooldown <= 0 && GameState.gameActive) {
         const hero = HEROES.find(h => h.name === GameState.selectedHero);
-        if (hero.weapon === 'Pistol' || hero.weapon === 'Assault Rifle' || hero.weapon === 'Ice Powers') {
+        if (hero.weapon === 'Pistol' || hero.weapon === 'Assault Rifle' || hero.weapon === 'Ice Powers' || hero.weapon === 'M416') {
             GameState.bullets.push(createBullet(GameState.player.x, GameState.player.y, GameState.player.dir));
             GameState.player.gunFlash = 0.1;
-            GameState.player.atkCooldown = (hero.weapon === 'Assault Rifle' || hero.weapon === 'Ice Powers') ? CONFIG.WEAPON.ATTACK_COOLDOWN * 0.5 : CONFIG.WEAPON.ATTACK_COOLDOWN;
+            GameState.player.atkCooldown = (hero.weapon === 'Assault Rifle' || hero.weapon === 'Ice Powers' || hero.weapon === 'M416') ? CONFIG.WEAPON.ATTACK_COOLDOWN * 0.2 : CONFIG.WEAPON.ATTACK_COOLDOWN;
+            GameState.audio.playBullet();
+        } else if (hero.weapon === 'Fire Powers') {
+            GameState.bullets.push(createBullet(GameState.player.x, GameState.player.y, -1));
+            GameState.bullets.push(createBullet(GameState.player.x, GameState.player.y, 1));
+            GameState.player.gunFlash = 0.1;
+            GameState.player.atkCooldown = CONFIG.WEAPON.ATTACK_COOLDOWN * 0.25;
+            GameState.audio.playBullet();
+        } else if (hero.weapon === 'Triple Barrel Gun') {
+            GameState.bullets.push(createBullet(GameState.player.x, GameState.player.y, GameState.player.dir));
+            GameState.bullets.push(createBullet(GameState.player.x, GameState.player.y, GameState.player.dir, -0.4));
+            GameState.bullets.push(createBullet(GameState.player.x, GameState.player.y, GameState.player.dir, 0.4));
+            GameState.player.gunFlash = 0.1;
+            GameState.player.atkCooldown = CONFIG.WEAPON.ATTACK_COOLDOWN * 0.15;
             GameState.audio.playBullet();
         }
     }
@@ -1255,10 +1297,11 @@ function drawEnemyProjectiles() {
 
 function drawBullets() {
     GameState.bullets.forEach(b => {
-        GameState.ctx.fillStyle = 'yellow';
+        const isIce = GameState.player.weapon === 'Ice Powers';
+        GameState.ctx.fillStyle = isIce ? '#ffffff' : 'yellow';
         GameState.ctx.fillRect(b.x, b.y, b.w, b.h);
 
-        GameState.ctx.fillStyle = 'rgba(255, 255, 0, 0.3)';
+        GameState.ctx.fillStyle = isIce ? 'rgba(200, 255, 255, 0.5)' : 'rgba(255, 255, 0, 0.3)';
         GameState.ctx.fillRect(b.x - 10, b.y, 10, b.h);
     });
 }
@@ -1314,9 +1357,13 @@ function drawPlayer() {
         GameState.ctx.fillStyle = hatColor;
         GameState.ctx.fillRect(-GameState.player.w / 2 - 2, -GameState.player.h + 5, GameState.player.w + 4, 10);
 
-        // Ice shield
-        if (GameState.player.name === 'Ice' && GameState.player.shield > 0) {
-            GameState.ctx.strokeStyle = '#a5f3fc';
+        // All hero shields with custom colors
+        if ((GameState.player.name === 'Ice' || GameState.player.name === 'Machine' || GameState.player.name === 'Fire' || GameState.player.name === 'Alien') && GameState.player.shield > 0) {
+            let shieldColor = '#a5f3fc'; // Ice - cyan
+            if (GameState.player.name === 'Machine') shieldColor = '#000000'; // black
+            else if (GameState.player.name === 'Fire') shieldColor = '#ff0000'; // red
+            else if (GameState.player.name === 'Alien') shieldColor = '#00ff00'; // green
+            GameState.ctx.strokeStyle = shieldColor;
             GameState.ctx.lineWidth = 3;
             GameState.ctx.strokeRect(-GameState.player.w / 2 - 5, -GameState.player.h - 5, GameState.player.w + 10, GameState.player.h + 10);
         }
@@ -1384,6 +1431,42 @@ function drawWeapon() {
                 GameState.ctx.lineTo(GameState.player.dir * 21, 8 + i * 2);
                 GameState.ctx.stroke();
             }
+        }
+    } else if (GameState.player.weapon === 'Ice Powers') {
+        // Ice gun - frosty blue design
+        GameState.ctx.fillStyle = '#a5f3fc';
+        GameState.ctx.fillRect(GameState.player.dir * 14, -30, 32, 10);
+        GameState.ctx.fillStyle = '#e0f7ff';
+        GameState.ctx.fillRect(GameState.player.dir * 16, -28, 28, 6);
+        GameState.ctx.fillStyle = '#00d4ff';
+        GameState.ctx.fillRect(GameState.player.dir * 45, -29, 6, 8);
+        // Muzzle glow
+        if (GameState.player.gunFlash > 0) {
+            GameState.ctx.fillStyle = `rgba(165, 243, 252, ${GameState.player.gunFlash * 8})`;
+            GameState.ctx.beginPath();
+            GameState.ctx.arc(GameState.player.dir * (15 + 18), -24, 8, 0, Math.PI * 2);
+            GameState.ctx.fill();
+        }
+    } else if (GameState.player.weapon === 'Fire Powers') {
+        // Fire hero: both hand red flame pistols
+        const xBase = GameState.player.dir === 1 ? 8 : -28;
+        // left hand barrel
+        GameState.ctx.fillStyle = '#ff4500';
+        GameState.ctx.fillRect(GameState.player.dir * (xBase - 8), -30, 18, 8);
+        GameState.ctx.fillStyle = '#ff0000';
+        GameState.ctx.fillRect(GameState.player.dir * (xBase - 8), -32, 18, 4);
+        // right hand barrel
+        GameState.ctx.fillStyle = '#ff4500';
+        GameState.ctx.fillRect(GameState.player.dir * (xBase + 24), -30, 18, 8);
+        GameState.ctx.fillStyle = '#ff0000';
+        GameState.ctx.fillRect(GameState.player.dir * (xBase + 24), -32, 18, 4);
+
+        // propellant glow
+        if (GameState.player.gunFlash > 0) {
+            GameState.ctx.fillStyle = `rgba(255, 100, 0, ${GameState.player.gunFlash * 9})`;
+            GameState.ctx.beginPath();
+            GameState.ctx.arc(GameState.player.dir * (xBase + 30), -26, 10, 0, Math.PI * 2);
+            GameState.ctx.fill();
         }
     } else if (GameState.player.weapon === 'Pistol') {
         // Pistol barrel and body - realistic design
@@ -1486,6 +1569,28 @@ function drawWeapon() {
             GameState.ctx.stroke();
         }
 
+        if (GameState.player.weapon === 'Triple Barrel Gun') {
+            // Alien triple-barrel big gun
+            // Main body
+            GameState.ctx.fillStyle = '#1a1a1a';
+            GameState.ctx.fillRect(GameState.player.dir * 10, -32, 50, 14);
+            GameState.ctx.fillStyle = '#333';
+            GameState.ctx.fillRect(GameState.player.dir * 10, -32, 50, 4);
+            // Three barrels - top, middle, bottom
+            GameState.ctx.fillStyle = '#222';
+            GameState.ctx.fillRect(GameState.player.dir * 14, -38, 40, 5); // top barrel
+            GameState.ctx.fillRect(GameState.player.dir * 14, -28, 40, 5); // middle barrel
+            GameState.ctx.fillRect(GameState.player.dir * 14, -18, 40, 5); // bottom barrel
+            // Barrel tips - glowing alien green
+            GameState.ctx.fillStyle = '#00ff00';
+            GameState.ctx.fillRect(GameState.player.dir * 54, -37, 4, 4);
+            GameState.ctx.fillRect(GameState.player.dir * 54, -27, 4, 4);
+            GameState.ctx.fillRect(GameState.player.dir * 54, -17, 4, 4);
+            // Stock
+            GameState.ctx.fillStyle = '#1a1a1a';
+            GameState.ctx.fillRect(GameState.player.dir * -5, -28, 15, 10);
+        }
+
         // Gun muzzle flash - enhanced
         if (GameState.player.gunFlash > 0) {
             // Flash burst
@@ -1508,6 +1613,30 @@ function drawWeapon() {
                 GameState.ctx.arc(GameState.player.dir * (15 + 20 + i * 3), -23 + (Math.random() - 0.5) * 4, Math.random() * 3, 0, Math.PI * 2);
                 GameState.ctx.fill();
             }
+        }
+    } else if (GameState.player.weapon === 'M416') {
+        // M416 Machine Gun visual
+        GameState.ctx.fillStyle = '#292929';
+        GameState.ctx.fillRect(GameState.player.dir * 10, -32, 55, 12);
+        GameState.ctx.fillStyle = '#404040';
+        GameState.ctx.fillRect(GameState.player.dir * 12, -30, 50, 8);
+        GameState.ctx.fillStyle = '#666666';
+        GameState.ctx.fillRect(GameState.player.dir * 57, -31, 10, 14);
+        GameState.ctx.fillStyle = '#2a2a2a';
+        GameState.ctx.fillRect(GameState.player.dir * 10, -22, 30, 14);
+        GameState.ctx.fillStyle = '#1e1e1e';
+        GameState.ctx.fillRect(GameState.player.dir * 8, -12, 14, 24);
+        GameState.ctx.fillStyle = '#333333';
+        GameState.ctx.fillRect(GameState.player.dir * -5, -25, 15, 10);
+        GameState.ctx.fillStyle = '#222222';
+        GameState.ctx.fillRect(GameState.player.dir * 12, 5, 8, 15);
+        // Muzzle flash
+        if (GameState.player.gunFlash > 0) {
+            const flashSize = (1 - GameState.player.gunFlash / 0.1) * 32;
+            GameState.ctx.fillStyle = `rgba(255, 200, 0, ${GameState.player.gunFlash * 8})`;
+            GameState.ctx.beginPath();
+            GameState.ctx.arc(GameState.player.dir * (16 + 22), -23, flashSize, 0, Math.PI * 2);
+            GameState.ctx.fill();
         }
     } else if (GameState.player.weapon === 'Assault Rifle') {
         // Assault Rifle - bigger and longer like M416
