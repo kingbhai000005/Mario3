@@ -607,10 +607,11 @@ canvas {
 /* Game Controls */
 .controls {
     position: absolute;
-    bottom: 20px;
-    left: 20px;
-    display: flex;
-    gap: 15px;
+    left: 0;
+    bottom: 0;
+    width: 100vw;
+    height: 100vh;
+    display: block;
     z-index: 10;
 }
 
@@ -620,6 +621,7 @@ canvas {
     background: var(--glass);
     border-radius: 15px;
     display: flex;
+    pointer-events: auto;
     justify-content: center;
     align-items: center;
     font-size: 30px;

@@ -173,6 +173,7 @@ const GameState = {
     selectedTheme: 'Day',
     isRGB: false,
     hiScore: 0,
+    autoFireMode: false,
 
     // Game objects
     player: null,
@@ -597,7 +598,12 @@ function toggleFullscreen() {
    ============================================ */
 let TouchSettings = {
     jumpSize: 60,
-    attackSize: 60
+    attackSize: 60,
+    autoFire: false,
+    leftBtn: { x: 20, y: window.innerHeight - 120, size: 60 },
+    rightBtn: { x: 90, y: window.innerHeight - 120, size: 60 },
+    jumpBtn: { x: window.innerWidth - 150, y: window.innerHeight - 150, size: 85 },
+    attackBtn: { x: window.innerWidth - 80, y: window.innerHeight - 90, size: 85 }
 };
 
 function loadTouchSettings() {
@@ -605,6 +611,7 @@ function loadTouchSettings() {
     if (saved) {
         TouchSettings = JSON.parse(saved);
     }
+    GameState.autoFireMode = TouchSettings.autoFire;
     applyTouchSettings();
 }
 
@@ -614,16 +621,90 @@ function saveTouchSettings() {
 }
 
 function applyTouchSettings() {
+    const leftBtn = document.getElementById('leftBtn');
+    const rightBtn = document.getElementById('rightBtn');
     const jumpBtn = document.getElementById('jumpBtn');
     const attackBtn = document.getElementById('attackBtn');
+
+    const controls = document.querySelector('.controls');
+    if (controls) {
+        controls.style.left = '0';
+        controls.style.bottom = '0';
+        controls.style.width = '100vw';
+        controls.style.height = '100vh';
+        controls.style.display = 'block';
+    }
+
+    if (leftBtn) {
+        leftBtn.style.position = 'absolute';
+        leftBtn.style.left = `${TouchSettings.leftBtn.x}px`;
+        leftBtn.style.top = `${TouchSettings.leftBtn.y}px`;
+        leftBtn.style.width = `${TouchSettings.leftBtn.size}px`;
+        leftBtn.style.height = `${TouchSettings.leftBtn.size}px`;
+    }
+    if (rightBtn) {
+        rightBtn.style.position = 'absolute';
+        rightBtn.style.left = `${TouchSettings.rightBtn.x}px`;
+        rightBtn.style.top = `${TouchSettings.rightBtn.y}px`;
+        rightBtn.style.width = `${TouchSettings.rightBtn.size}px`;
+        rightBtn.style.height = `${TouchSettings.rightBtn.size}px`;
+    }
     if (jumpBtn) {
-        jumpBtn.style.width = TouchSettings.jumpSize + 'px';
-        jumpBtn.style.height = TouchSettings.jumpSize + 'px';
+        jumpBtn.style.position = 'absolute';
+        jumpBtn.style.left = `${TouchSettings.jumpBtn.x}px`;
+        jumpBtn.style.top = `${TouchSettings.jumpBtn.y}px`;
+        jumpBtn.style.width = `${TouchSettings.jumpBtn.size}px`;
+        jumpBtn.style.height = `${TouchSettings.jumpBtn.size}px`;
     }
     if (attackBtn) {
-        attackBtn.style.width = TouchSettings.attackSize + 'px';
-        attackBtn.style.height = TouchSettings.attackSize + 'px';
+        attackBtn.style.position = 'absolute';
+        attackBtn.style.left = `${TouchSettings.attackBtn.x}px`;
+        attackBtn.style.top = `${TouchSettings.attackBtn.y}px`;
+        attackBtn.style.width = `${TouchSettings.attackBtn.size}px`;
+        attackBtn.style.height = `${TouchSettings.attackBtn.size}px`;
     }
+}
+
+function setupControlDrag() {
+    const dragItems = ['leftBtn', 'rightBtn', 'jumpBtn', 'attackBtn'];
+    dragItems.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        let dragging = false;
+        let offsetX = 0;
+        let offsetY = 0;
+
+        el.style.touchAction = 'none';
+
+        el.addEventListener('pointerdown', e => {
+            dragging = true;
+            offsetX = e.clientX - el.getBoundingClientRect().left;
+            offsetY = e.clientY - el.getBoundingClientRect().top;
+            el.setPointerCapture(e.pointerId);
+        });
+
+        el.addEventListener('pointermove', e => {
+            if (!dragging) return;
+            const x = e.clientX - offsetX;
+            const y = e.clientY - offsetY;
+            const limitedX = Math.max(0, Math.min(window.innerWidth - el.offsetWidth, x));
+            const limitedY = Math.max(0, Math.min(window.innerHeight - el.offsetHeight, y));
+            el.style.left = `${limitedX}px`;
+            el.style.top = `${limitedY}px`;
+
+            TouchSettings[id].x = limitedX;
+            TouchSettings[id].y = limitedY;
+        });
+
+        el.addEventListener('pointerup', e => {
+            dragging = false;
+            el.releasePointerCapture(e.pointerId);
+            saveTouchSettings();
+        });
+        el.addEventListener('pointercancel', () => {
+            dragging = false;
+        });
+    });
 }
 
 function openTouchSettings() {
@@ -632,18 +713,50 @@ function openTouchSettings() {
         modal.classList.remove('hidden');
         document.getElementById('jumpSizeSlider').value = TouchSettings.jumpSize;
         document.getElementById('attackSizeSlider').value = TouchSettings.attackSize;
+        document.getElementById('jumpSizeVal').innerText = TouchSettings.jumpSize;
+        document.getElementById('attackSizeVal').innerText = TouchSettings.attackSize;
+
+        const autoBtn = document.getElementById('toggleAutoFireBtn');
+        if (autoBtn) {
+            autoBtn.textContent = `Auto Fire: ${TouchSettings.autoFire ? 'ON' : 'OFF'}`;
+            autoBtn.onclick = () => {
+                TouchSettings.autoFire = !TouchSettings.autoFire;
+                GameState.autoFireMode = TouchSettings.autoFire;
+                autoBtn.textContent = `Auto Fire: ${TouchSettings.autoFire ? 'ON' : 'OFF'}`;
+                saveTouchSettings();
+            };
+        }
+
         updatePreview();
         
         // Add event listeners
+        document.getElementById('leftSizeSlider').oninput = () => {
+            const v = parseInt(document.getElementById('leftSizeSlider').value);
+            TouchSettings.leftBtn.size = v;
+            document.getElementById('leftSizeVal').innerText = v;
+            applyTouchSettings();
+            updatePreview();
+        };
+        document.getElementById('rightSizeSlider').oninput = () => {
+            const v = parseInt(document.getElementById('rightSizeSlider').value);
+            TouchSettings.rightBtn.size = v;
+            document.getElementById('rightSizeVal').innerText = v;
+            applyTouchSettings();
+            updatePreview();
+        };
         document.getElementById('jumpSizeSlider').oninput = () => {
-            TouchSettings.jumpSize = parseInt(document.getElementById('jumpSizeSlider').value);
-            document.getElementById('jumpSizeVal').innerText = TouchSettings.jumpSize;
+            const v = parseInt(document.getElementById('jumpSizeSlider').value);
+            TouchSettings.jumpBtn.size = v;
+            document.getElementById('jumpSizeVal').innerText = v;
+            applyTouchSettings();
             updatePreview();
         };
         
         document.getElementById('attackSizeSlider').oninput = () => {
-            TouchSettings.attackSize = parseInt(document.getElementById('attackSizeSlider').value);
-            document.getElementById('attackSizeVal').innerText = TouchSettings.attackSize;
+            const v = parseInt(document.getElementById('attackSizeSlider').value);
+            TouchSettings.attackBtn.size = v;
+            document.getElementById('attackSizeVal').innerText = v;
+            applyTouchSettings();
             updatePreview();
         };
     }
@@ -768,11 +881,17 @@ function setupInputBindings() {
     window.onkeydown = (e) => {
         GameState.keys[e.code] = true;
         if (['Space', 'ArrowUp', 'KeyW'].includes(e.code)) handleJump();
-        if (e.code === 'KeyE') handleAttack();
+        if (e.code === 'KeyE') {
+            if (GameState.autoFireMode) {
+                GameState.player.isFiring = !GameState.player.isFiring;
+            } else {
+                handleAttack();
+            }
+        }
     };
     window.onkeyup = (e) => {
         GameState.keys[e.code] = false;
-        if (e.code === 'KeyE') {
+        if (e.code === 'KeyE' && !GameState.autoFireMode) {
             GameState.player.isFiring = false; // Stop continuous fire
         }
     };
@@ -786,11 +905,18 @@ function setupInputBindings() {
     };
     document.getElementById('attackBtn').ontouchstart = (e) => {
         e.preventDefault();
-        handleAttack();
+        if (GameState.autoFireMode) {
+            GameState.player.isFiring = !GameState.player.isFiring;
+        } else {
+            handleAttack();
+            GameState.player.isFiring = true;
+        }
     };
     document.getElementById('attackBtn').ontouchend = (e) => {
         e.preventDefault();
-        GameState.player.isFiring = false;
+        if (!GameState.autoFireMode) {
+            GameState.player.isFiring = false;
+        }
     };
 }
 
@@ -1879,4 +2005,5 @@ window.addEventListener('DOMContentLoaded', () => {
     document.getElementById('toggleEnemyInfoBtn').onclick = toggleEnemyInfo;
     loadTouchSettings();
     setupInputBindings();
+    setupControlDrag();
 });
