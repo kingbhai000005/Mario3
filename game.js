@@ -557,6 +557,14 @@ function toggleRGB() {
     const btn = document.getElementById('rgbToggle');
     btn.innerText = `RGB MODE: ${GameState.isRGB ? 'ON' : 'OFF'}`;
     btn.classList.toggle('active', GameState.isRGB);
+    
+    // Toggle RGB styling on main menu
+    const startMenu = document.getElementById('startMenu');
+    if (GameState.isRGB) {
+        startMenu.classList.add('rgb-active');
+    } else {
+        startMenu.classList.remove('rgb-active');
+    }
 }
 
 function toggleTestMode() {
@@ -969,12 +977,15 @@ function initGame() {
         document.getElementById('gameContainer').style.background = theme.bg;
     } else {
         GameState.rgbAnimIndex = 0;
-        const { bg, anim } = getRGBAnim(GameState.rgbAnimIndex);
         const container = document.getElementById('gameContainer');
-        container.style.background = bg;
-        container.style.backgroundSize = '400% 400%';
-        container.style.animation = anim;
-        GameState.rgbAnimInterval = setInterval(changeRGBAnim, 3000); // Change every 3 seconds
+        container.style.background = 'linear-gradient(135deg, #330011 0%, #331100 20%, #003300 40%, #003366 60%, #330033 80%, #330011 100%)';
+        container.style.backgroundSize = '100% 100%';
+        container.style.animation = 'none';
+        // Clear any existing interval
+        if (GameState.rgbAnimInterval) {
+            clearInterval(GameState.rgbAnimInterval);
+            GameState.rgbAnimInterval = null;
+        }
     }
     
     document.getElementById('curWep').innerText = HEROES.find(h => h.name === GameState.selectedHero).weapon;

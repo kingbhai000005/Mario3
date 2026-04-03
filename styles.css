@@ -142,7 +142,7 @@ canvas {
 #startMenu {
     position: fixed; 
     inset: 0;
-    background: radial-gradient(circle at 15% 15%, #151921 0%, #020308 100%);   
+    background: linear-gradient(135deg, #0a0e27 0%, #1a0033 50%, #0a0e27 100%);
     display: flex; 
     flex-direction: column;
     justify-content: space-between;
@@ -153,11 +153,21 @@ canvas {
     height: 100%;
     width: 100vw;
     height: 100dvh;
+    transition: background 1s ease-in-out;
+}
+
+#startMenu.rgb-active {
+    background: linear-gradient(135deg, #330011 0%, #331100 25%, #003300 50%, #003366 75%, #330033 100%);
 }
 
 #startMenu::before,
 #startMenu::after {
     display: none;
+}
+
+.rgb-active .glitch-text {
+    color: #00ffff;
+    text-shadow: 0 0 20px #00ffff, 0 0 40px #ff00ff;
 }
 
 /* TOP SECTION */
