@@ -25,22 +25,24 @@
 
     <!-- CENTER SECTION: The Pro Hero Card & Action -->
     <div class="center-section">
-        <div class="pro-hero-card">
-            <div class="card-glow"></div>
-            <div id="currentHeroPreview" class="hero-info-display">
-                <!-- Character info loads here -->
+        <div class="center-content">
+            <div class="pro-hero-card">
+                <div class="card-glow"></div>
+                <div id="currentHeroPreview" class="hero-info-display">
+                    <!-- Character info loads here -->
+                </div>
+                <button id="changeHeroBtn" class="cyber-outline-btn">Change Character</button>
             </div>
-            <button id="changeHeroBtn" class="cyber-outline-btn">Change Character</button>
+
+            <button class="mega-launch-btn" onclick="initGame()">
+                <span>START ADVENTURE</span>
+            </button>
         </div>
 
         <div class="themes-hub">
             <span class="hub-label">Themes</span>
             <div id="themeList" class="grid-list"></div>
         </div>
-
-        <button class="mega-launch-btn" onclick="initGame()">
-            <span>START ADVENTURE</span>
-        </button>
     </div>
 
     <!-- BOTTOM SECTION: System Controls -->

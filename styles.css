@@ -161,18 +161,27 @@ canvas {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 12px;
+    gap: 15px;
     flex: 1;
-    justify-content: center;
+    justify-content: space-between;
     overflow: hidden;
     padding: 0 10px;
     min-height: 0;
+    width: 100%;
+}
+
+.center-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
 }
 
 .pro-hero-card {
-    width: 90%;
-    max-width: 320px;
-    padding: 18px;
+    width: 95%;
+    max-width: 400px;
+    padding: 16px;
     border-radius: 20px;
     background: rgba(255, 255, 255, 0.02);
     border: 1px solid rgba(0, 242, 255, 0.1);
@@ -241,18 +250,20 @@ canvas {
 
 /* START BUTTON */
 .mega-launch-btn {
-    padding: 14px 40px;
+    padding: 12px 35px;
     background: transparent;
     border: 2px solid var(--neon-cyan);
     color: var(--neon-cyan);
     font-family: 'Arial Black';
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 900;
     cursor: pointer;
     position: relative;
     transition: 0.3s;
-    margin-top: 10px;
-    min-width: 150px;
+    margin-top: 0;
+    min-width: 140px;
+    width: 95%;
+    max-width: 400px;
 }
 
 .mega-launch-btn:hover {
@@ -264,17 +275,19 @@ canvas {
 
 /* THEMES HUB */
 .themes-hub {
-    width: 90%;
-    max-width: 300px;
+    width: 95%;
+    max-width: 400px;
+    align-self: center;
 }
 
 .hub-label {
-    font-size: 10px;
+    font-size: 11px;
     letter-spacing: 3px;
-    color: #444;
-    margin-top: 10px;
+    color: #666;
+    margin-bottom: 8px;
     display: block;
     text-transform: uppercase;
+    font-weight: 600;
 }
 
 /* BOTTOM SECTION */
