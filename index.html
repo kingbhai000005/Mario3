@@ -95,13 +95,9 @@
         <div class="selection-modal">
             <h2 class="modal-title">MUSIC SETTINGS</h2>
             <div style="color:#fff; font-size:12px; line-height:1.8;">
-                <p>Upload custom sound files:</p>
+                <p>Upload custom background music:</p>
                 <div style="margin-top:10px;">
-                    <label>1. Background Music: <input type="file" id="bgMusicInput" accept="audio/*"></label><br>
-                    <label>2. Jump Sound: <input type="file" id="jumpSoundInput" accept="audio/*"></label><br>
-                    <label>3. Attack Sound: <input type="file" id="attackSoundInput" accept="audio/*"></label><br>
-                    <label>4. Enemy Hit: <input type="file" id="enemyHitInput" accept="audio/*"></label><br>
-                    <label>5. Game Over: <input type="file" id="gameOverInput" accept="audio/*"></label><br>
+                    <label>Background Music: <input type="file" id="bgMusicInput" accept="audio/*"></label><br>
                 </div>
             </div>
             <button id="closeMusicBtn" class="abort-btn" onclick="closeMusicSettings()">CLOSE</button>
@@ -136,6 +132,7 @@
         </div>
     </div>
     <canvas id="game"></canvas>
+    <audio id="bgAudio" loop style="display:none;"></audio>
 
     <!-- Mobile Controls -->
     <div class="controls">

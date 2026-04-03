@@ -118,10 +118,21 @@ class AudioManager {
     }
 
     playBg() {
-        this.bg.play().catch(() => {});
+        const customURL = sessionStorage.getItem('bgMusicURL');
+        if (customURL) {
+            const audio = document.getElementById('bgAudio');
+            if (audio.src !== customURL) {
+                audio.src = customURL;
+            }
+            audio.play().catch(() => {});
+        } else {
+            this.bg.play().catch(() => {});
+        }
     }
 
     stopBg() {
+        document.getElementById('bgAudio').pause();
+        document.getElementById('bgAudio').currentTime = 0;
         this.bg.pause();
         this.bg.currentTime = 0;
     }
@@ -185,7 +196,9 @@ const GameState = {
     lastX: 0,
     keys: {},
     showEnemyInfo: false,
-    testMode: false
+    testMode: false,
+    rgbAnimIndex: 0,
+    rgbAnimInterval: null
 };
 
 /* ============================================
@@ -830,11 +843,87 @@ function closeTouchSettings() {
     if (modal) modal.classList.add('hidden');
 }
 
+function getRGBAnim(index) {
+    let bg, anim;
+    switch (index % 10 + 1) {
+        case 1:
+            bg = 'linear-gradient(45deg, #ff0000, #00ff00, #0000ff, #ff0000)';
+            anim = 'rgbShift1 3s ease-in-out infinite';
+            break;
+        case 2:
+            bg = 'linear-gradient(90deg, #800080, #ff1493, #00ffff, #800080)';
+            anim = 'rgbShift2 3s ease-in-out infinite';
+            break;
+        case 3:
+            bg = 'linear-gradient(135deg, #ff4500, #ffff00, #32cd32, #ff4500)';
+            anim = 'rgbShift3 4s ease-in-out infinite';
+            break;
+        case 4:
+            bg = 'linear-gradient(0deg, #dc143c, #ff69b4, #1e90ff, #dc143c)';
+            anim = 'rgbShift4 3s ease-in-out infinite';
+            break;
+        case 5:
+            bg = 'linear-gradient(180deg, #ff6347, #ffd700, #adff2f, #ff6347)';
+            anim = 'rgbShift5 2s ease-in-out infinite';
+            break;
+        case 6:
+            bg = 'linear-gradient(225deg, #8a2be2, #da70d6, #40e0d0, #8a2be2)';
+            anim = 'rgbShift6 5s linear infinite';
+            break;
+        case 7:
+            bg = 'linear-gradient(270deg, #ff7f50, #ffa500, #00fa9a, #ff7f50)';
+            anim = 'rgbShift7 3s ease-in-out infinite';
+            break;
+        case 8:
+            bg = 'linear-gradient(315deg, #b22222, #ff00ff, #00bfff, #b22222)';
+            anim = 'rgbShift8 4s ease-in-out infinite';
+            break;
+        case 9:
+            bg = 'linear-gradient(45deg, #ff0000 0%, #00ff00 25%, #0000ff 50%, #ff0000 75%, #00ff00 100%)';
+            anim = 'rgbShift9 3s ease-in-out infinite';
+            break;
+        case 10:
+            bg = 'repeating-linear-gradient(45deg, #ff0000, #ff0000 10%, #00ff00 10%, #00ff00 20%, #0000ff 20%, #0000ff 30%)';
+            anim = 'rgbShift10 3s ease-in-out infinite';
+            break;
+    }
+    return { bg, anim };
+}
+
+function changeRGBAnim() {
+    GameState.rgbAnimIndex = Math.floor(Math.random() * 10);
+    const { bg, anim } = getRGBAnim(GameState.rgbAnimIndex);
+    const container = document.getElementById('gameContainer');
+    container.style.background = bg;
+    container.style.backgroundSize = '400% 400%';
+    container.style.animation = anim;
+}
+
 function openMusicSettings() {
     const modal = document.getElementById('musicSettingsModal');
     if (modal) {
         modal.classList.remove('hidden');
-        // Load any saved audio if needed
+        const bgInput = document.getElementById('bgMusicInput');
+        if (bgInput) {
+            bgInput.onchange = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const url = URL.createObjectURL(file);
+                    const audio = document.getElementById('bgAudio');
+                    audio.src = url;
+                    audio.play();
+                    // Perhaps save for session
+                    sessionStorage.setItem('bgMusicURL', url);
+                }
+            };
+        }
+        // Load if saved
+        const savedURL = sessionStorage.getItem('bgMusicURL');
+        if (savedURL) {
+            const audio = document.getElementById('bgAudio');
+            audio.src = savedURL;
+            audio.play();
+        }
     }
 }
 
@@ -879,7 +968,13 @@ function initGame() {
         const theme = THEMES.find(t => t.name === GameState.selectedTheme);
         document.getElementById('gameContainer').style.background = theme.bg;
     } else {
-        document.getElementById('gameContainer').style.background = '#000';
+        GameState.rgbAnimIndex = 0;
+        const { bg, anim } = getRGBAnim(GameState.rgbAnimIndex);
+        const container = document.getElementById('gameContainer');
+        container.style.background = bg;
+        container.style.backgroundSize = '400% 400%';
+        container.style.animation = anim;
+        GameState.rgbAnimInterval = setInterval(changeRGBAnim, 3000); // Change every 3 seconds
     }
     
     document.getElementById('curWep').innerText = HEROES.find(h => h.name === GameState.selectedHero).weapon;
@@ -893,6 +988,13 @@ function resetGame() {
         cancelAnimationFrame(GameState.animationFrameId);
         GameState.animationFrameId = null;
     }
+    
+    // Clear RGB animation interval
+    if (GameState.rgbAnimInterval) {
+        clearInterval(GameState.rgbAnimInterval);
+        GameState.rgbAnimInterval = null;
+    }
+    GameState.rgbAnimIndex = 0;
     
     const dpr = window.devicePixelRatio || 1;
     GameState.width = window.innerWidth;
@@ -1450,15 +1552,13 @@ function draw() {
 function drawPlatforms() {
     GameState.platforms.forEach(p => {
         if (GameState.isRGB) {
-            GameState.ctx.strokeStyle = `hsl(${GameState.rgbHue}, 100%, 50%)`;
-            GameState.ctx.strokeRect(p.x, p.y, p.w, 12);
             GameState.ctx.fillStyle = '#111';
+            GameState.ctx.fillRect(p.x, p.y, p.w, p.h);
+            GameState.ctx.fillStyle = `hsl(${GameState.rgbHue}, 100%, 60%)`;
+            GameState.ctx.fillRect(p.x, p.y, p.w, 25);
         } else {
             GameState.ctx.fillStyle = GameState.selectedTheme === 'Night' ? '#1e293b' : '#5d4037';
-        }
-        GameState.ctx.fillRect(p.x, p.y, p.w, p.h);
-
-        if (!GameState.isRGB) {
+            GameState.ctx.fillRect(p.x, p.y, p.w, p.h);
             GameState.ctx.fillStyle = GameState.selectedTheme === 'Night' ? '#334155' : '#4caf50';
             GameState.ctx.fillRect(p.x, p.y, p.w, 12);
         }
@@ -1557,35 +1657,41 @@ function drawEnemies() {
 
 function drawEnemyProjectiles() {
     GameState.enemyProjectiles.forEach(ep => {
-        if (ep.isIce) {
+        if (GameState.isRGB) {
+            GameState.ctx.fillStyle = `hsl(${GameState.rgbHue + 120}, 100%, 50%)`; // Different hue for enemy
+            GameState.ctx.strokeStyle = `hsl(${GameState.rgbHue + 120}, 100%, 70%)`;
+        } else if (ep.isIce) {
             // Draw ice projectile
             GameState.ctx.fillStyle = '#a5f3fc';
-            GameState.ctx.beginPath();
-            GameState.ctx.arc(ep.x, ep.y, ep.w / 2, 0, Math.PI * 2);
-            GameState.ctx.fill();
             GameState.ctx.strokeStyle = '#00d4ff';
-            GameState.ctx.lineWidth = 2;
-            GameState.ctx.stroke();
         } else {
             GameState.ctx.fillStyle = '#ff6b6b';
-            GameState.ctx.beginPath();
-            GameState.ctx.arc(ep.x, ep.y, ep.w / 2, 0, Math.PI * 2);
-            GameState.ctx.fill();
-
             GameState.ctx.strokeStyle = 'rgba(255, 107, 107, 0.5)';
-            GameState.ctx.lineWidth = 2;
-            GameState.ctx.stroke();
         }
+        GameState.ctx.beginPath();
+        GameState.ctx.arc(ep.x, ep.y, ep.w / 2, 0, Math.PI * 2);
+        GameState.ctx.fill();
+        GameState.ctx.lineWidth = 2;
+        GameState.ctx.stroke();
     });
 }
 
 function drawBullets() {
     GameState.bullets.forEach(b => {
-        const isIce = GameState.player.weapon === 'Ice Powers';
-        GameState.ctx.fillStyle = isIce ? '#ffffff' : 'yellow';
+        if (GameState.isRGB) {
+            GameState.ctx.fillStyle = `hsl(${GameState.rgbHue}, 100%, 50%)`;
+        } else {
+            const isIce = GameState.player.weapon === 'Ice Powers';
+            GameState.ctx.fillStyle = isIce ? '#ffffff' : 'yellow';
+        }
         GameState.ctx.fillRect(b.x, b.y, b.w, b.h);
 
-        GameState.ctx.fillStyle = isIce ? 'rgba(200, 255, 255, 0.5)' : 'rgba(255, 255, 0, 0.3)';
+        if (GameState.isRGB) {
+            GameState.ctx.fillStyle = `hsla(${GameState.rgbHue}, 100%, 50%, 0.5)`;
+        } else {
+            const isIce = GameState.player.weapon === 'Ice Powers';
+            GameState.ctx.fillStyle = isIce ? 'rgba(200, 255, 255, 0.5)' : 'rgba(255, 255, 0, 0.3)';
+        }
         GameState.ctx.fillRect(b.x - 10, b.y, 10, b.h);
     });
 }
