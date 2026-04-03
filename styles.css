@@ -111,6 +111,36 @@ canvas {
     to { background-position: 200% center; }
 }
 
+.title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+}
+
+.fullscreen-btn {
+    background: transparent;
+    border: 2px solid var(--neon-cyan);
+    color: var(--neon-cyan);
+    font-size: 20px;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: 0.3s;
+    padding: 0;
+    flex-shrink: 0;
+}
+
+.fullscreen-btn:hover {
+    background: var(--neon-cyan);
+    color: #000;
+    box-shadow: 0 0 15px var(--neon-cyan);
+}
+
 .stats-bar {
     margin-top: 5px;
     font-weight: 700;
@@ -131,16 +161,18 @@ canvas {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 15px;
+    gap: 12px;
     flex: 1;
     justify-content: center;
     overflow: hidden;
+    padding: 0 10px;
+    min-height: 0;
 }
 
 .pro-hero-card {
     width: 90%;
     max-width: 320px;
-    padding: 20px;
+    padding: 18px;
     border-radius: 20px;
     background: rgba(255, 255, 255, 0.02);
     border: 1px solid rgba(0, 242, 255, 0.1);
@@ -148,6 +180,7 @@ canvas {
     position: relative;
     box-shadow: 0 20px 40px rgba(0,0,0,0.6);
     overflow: hidden;
+    flex-shrink: 0;
 }
 
 .pro-hero-card::before {
