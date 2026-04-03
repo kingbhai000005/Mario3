@@ -595,21 +595,23 @@ function toggleFullscreen() {
 /* ============================================
    TOUCH CONTROL SETTINGS
    ============================================ */
-let TouchSettings = {
-    jumpSize: 60,
-    attackSize: 60,
-    leftBtn: { x: 20, y: window.innerHeight - 120, size: 60 },
-    rightBtn: { x: 90, y: window.innerHeight - 120, size: 60 },
-    jumpBtn: { x: window.innerWidth - 150, y: window.innerHeight - 150, size: 85 },
-    attackBtn: { x: window.innerWidth - 80, y: window.innerHeight - 90, size: 85 }
-};
-
+let TouchSettings;
 let customizerSettings = null;
 
 function loadTouchSettings() {
     const saved = localStorage.getItem('marioTouchSettings');
     if (saved) {
         TouchSettings = JSON.parse(saved);
+    } else {
+        // Set defaults based on current window
+        TouchSettings = {
+            jumpSize: 60,
+            attackSize: 60,
+            leftBtn: { x: 20, y: window.innerHeight - 120, size: 60 },
+            rightBtn: { x: 90, y: window.innerHeight - 120, size: 60 },
+            jumpBtn: { x: window.innerWidth - 150, y: window.innerHeight - 150, size: 85 },
+            attackBtn: { x: window.innerWidth - 80, y: window.innerHeight - 90, size: 85 }
+        };
     }
     applyTouchSettings();
 }
@@ -626,9 +628,8 @@ function openButtonCustomizer() {
     if (!overlay) return;
     overlay.classList.remove('hidden');
 
-    const customizerArea = document.getElementById('customizerArea');
-    const areaWidth = customizerArea.offsetWidth;
-    const areaHeight = customizerArea.offsetHeight;
+    const areaWidth = window.innerWidth;
+    const areaHeight = window.innerHeight;
 
     const buttons = [
         { id: 'custLeft', key: 'leftBtn', label: '◀' },
@@ -637,30 +638,14 @@ function openButtonCustomizer() {
         { id: 'custAttack', key: 'attackBtn', label: 'STRIKE' }
     ];
 
-    // Default positions for customizer (scaled to fit the area)
-    const defaultPositions = {
-        leftBtn: { x: 20, y: areaHeight - 80 },
-        rightBtn: { x: 90, y: areaHeight - 80 },
-        jumpBtn: { x: areaWidth - 150, y: areaHeight - 100 },
-        attackBtn: { x: areaWidth - 80, y: areaHeight - 70 }
-    };
-
     buttons.forEach(btn => {
         const el = document.getElementById(btn.id);
         if (!el) return;
-        // Use scaled positions or defaults
-        const scaleX = areaWidth / window.innerWidth;
-        const scaleY = areaHeight / window.innerHeight;
         const settings = customizerSettings[btn.key];
-        let x = settings.x * scaleX;
-        let y = settings.y * scaleY;
-        // Ensure within bounds
-        x = Math.max(0, Math.min(areaWidth - 60, x));
-        y = Math.max(0, Math.min(areaHeight - 60, y));
-        el.style.left = x + 'px';
-        el.style.top = y + 'px';
-        el.style.width = '60px';
-        el.style.height = '60px';
+        el.style.left = settings.x + 'px';
+        el.style.top = settings.y + 'px';
+        el.style.width = settings.size + 'px';
+        el.style.height = settings.size + 'px';
         el.textContent = btn.label;
 
         let dragging = false;
@@ -685,8 +670,8 @@ function openButtonCustomizer() {
             const limitedY = Math.max(0, Math.min(maxY, y));
             el.style.left = limitedX + 'px';
             el.style.top = limitedY + 'px';
-            customizerSettings[btn.key].x = limitedX / scaleX; // Scale back to full screen
-            customizerSettings[btn.key].y = limitedY / scaleY;
+            customizerSettings[btn.key].x = limitedX;
+            customizerSettings[btn.key].y = limitedY;
         };
 
         el.onpointerup = e => {
@@ -2028,6 +2013,7 @@ function updateOrientationState() {
             el.style.pointerEvents = 'auto';
         });
         document.getElementById('menu').style.display = 'none';
+        applyTouchSettings(); // Reposition buttons on orientation change
     }
 }
 
