@@ -15,7 +15,10 @@
     <div class="top-section">
         <div class="title-row">
             <h1 id="gameTitle" class="glitch-text">ULTIMATE MARIO</h1>
-            <button id="fullscreenBtn" class="fullscreen-btn" onclick="toggleFullscreen()" title="Enter Fullscreen">⛶</button>
+            <div style="display:flex; gap:8px;">
+                <button id="settingsBtn" class="fullscreen-btn" onclick="openTouchSettings()" title="Touch Control Settings">⚙️</button>
+                <button id="fullscreenBtn" class="fullscreen-btn" onclick="toggleFullscreen()" title="Enter Fullscreen">⛶</button>
+            </div>
         </div>
         <div class="stats-bar">
             <span class="stat-label">HI-SCORE:</span>
@@ -71,6 +74,21 @@
             <h2 class="modal-title">CHOOSE YOUR HERO</h2>
             <div id="heroSelectionGrid" class="grid-list"></div>
             <button id="closeHeroSelectionBtn" class="abort-btn">ABORT</button> 
+        </div>
+    </div>
+
+    <!-- TOUCH CONTROLS SETTINGS MODAL -->
+    <div id="touchSettingsModal" class="hero-selection-overlay hidden">
+        <div class="selection-modal">
+            <h2 class="modal-title">TOUCH CONTROLS</h2>
+            <div id="touchSettingsContent" style="color:#fff; font-size:12px; line-height:1.8;">
+                <p>Left/Right: Drag and resize buttons</p>
+                <p>Jump: <input type="range" id="jumpSizeSlider" min="30" max="100" value="60" style="width:100px;"> <span id="jumpSizeVal">60</span>px</p>
+                <p>Strike: <input type="range" id="attackSizeSlider" min="30" max="100" value="60" style="width:100px;"> <span id="attackSizeVal">60</span>px</p>
+                <p style="margin-top:15px; color:#a5f3fc;">Preview:</p>
+                <div id="controlsPreview" style="height:120px; background:#0a0a0a; border:1px solid #333; border-radius:8px; position:relative; overflow:hidden;"></div>
+            </div>
+            <button id="closeSettingsBtn" class="abort-btn" onclick="closeTouchSettings()">SAVE & CLOSE</button>
         </div>
     </div>
 </div>

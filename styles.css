@@ -115,7 +115,7 @@ canvas {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 15px;
+    gap: 20px;
 }
 
 .fullscreen-btn {
@@ -318,6 +318,9 @@ canvas {
     gap: 8px;
     margin-top: 5px;
     flex-wrap: wrap;
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 5px;
 }
 
 .card {

@@ -593,6 +593,100 @@ function toggleFullscreen() {
 }
 
 /* ============================================
+   TOUCH CONTROL SETTINGS
+   ============================================ */
+let TouchSettings = {
+    jumpSize: 60,
+    attackSize: 60
+};
+
+function loadTouchSettings() {
+    const saved = localStorage.getItem('marioTouchSettings');
+    if (saved) {
+        TouchSettings = JSON.parse(saved);
+    }
+    applyTouchSettings();
+}
+
+function saveTouchSettings() {
+    localStorage.setItem('marioTouchSettings', JSON.stringify(TouchSettings));
+    applyTouchSettings();
+}
+
+function applyTouchSettings() {
+    const jumpBtn = document.getElementById('jumpBtn');
+    const attackBtn = document.getElementById('attackBtn');
+    if (jumpBtn) {
+        jumpBtn.style.width = TouchSettings.jumpSize + 'px';
+        jumpBtn.style.height = TouchSettings.jumpSize + 'px';
+    }
+    if (attackBtn) {
+        attackBtn.style.width = TouchSettings.attackSize + 'px';
+        attackBtn.style.height = TouchSettings.attackSize + 'px';
+    }
+}
+
+function openTouchSettings() {
+    const modal = document.getElementById('touchSettingsModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        document.getElementById('jumpSizeSlider').value = TouchSettings.jumpSize;
+        document.getElementById('attackSizeSlider').value = TouchSettings.attackSize;
+        updatePreview();
+        
+        // Add event listeners
+        document.getElementById('jumpSizeSlider').oninput = () => {
+            TouchSettings.jumpSize = parseInt(document.getElementById('jumpSizeSlider').value);
+            document.getElementById('jumpSizeVal').innerText = TouchSettings.jumpSize;
+            updatePreview();
+        };
+        
+        document.getElementById('attackSizeSlider').oninput = () => {
+            TouchSettings.attackSize = parseInt(document.getElementById('attackSizeSlider').value);
+            document.getElementById('attackSizeVal').innerText = TouchSettings.attackSize;
+            updatePreview();
+        };
+    }
+}
+
+function closeTouchSettings() {
+    saveTouchSettings();
+    const modal = document.getElementById('touchSettingsModal');
+    if (modal) modal.classList.add('hidden');
+}
+
+function updatePreview() {
+    const preview = document.getElementById('controlsPreview');
+    if (!preview) return;
+    
+    preview.innerHTML = '';
+    
+    // Left button
+    const leftBtn = document.createElement('div');
+    leftBtn.style.cssText = `position:absolute;left:10px;bottom:10px;width:45px;height:45px;background:#333;border:1px solid #555;border-radius:5px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:20px;`;
+    leftBtn.innerText = '◀';
+    preview.appendChild(leftBtn);
+    
+    // Right button
+    const rightBtn = document.createElement('div');
+    rightBtn.style.cssText = `position:absolute;right:10px;bottom:10px;width:45px;height:45px;background:#333;border:1px solid #555;border-radius:5px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:20px;`;
+    rightBtn.innerText = '▶';
+    preview.appendChild(rightBtn);
+    
+    // Jump button
+    const jumpBtn = document.createElement('div');
+    jumpBtn.style.cssText = `position:absolute;right:${60 + 10}px;bottom:10px;width:${TouchSettings.jumpSize}px;height:${TouchSettings.jumpSize}px;background:#0066cc;border:2px solid #00aaff;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#00aaff;font-size:12px;font-weight:bold;`;
+    jumpBtn.innerText = 'JUMP';
+    preview.appendChild(jumpBtn);
+    
+    // Attack button
+    const attackBtn = document.createElement('div');
+    attackBtn.style.cssText = `position:absolute;right:10px;top:10px;width:${TouchSettings.attackSize}px;height:${TouchSettings.attackSize}px;background:#cc0000;border:2px solid #ff0000;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#ff0000;font-size:12px;font-weight:bold;`;
+    attackBtn.innerText = 'STRIKE';
+    preview.appendChild(attackBtn);
+}
+
+/* ============================================
    GAME INITIALIZATION
    ============================================ */
 function initGame() {
@@ -1783,5 +1877,6 @@ window.addEventListener('DOMContentLoaded', () => {
     document.getElementById('changeHeroBtn').onclick = openHeroSelection;
     document.getElementById('closeHeroSelectionBtn').onclick = closeHeroSelection;
     document.getElementById('toggleEnemyInfoBtn').onclick = toggleEnemyInfo;
+    loadTouchSettings();
     setupInputBindings();
 });
