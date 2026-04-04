@@ -729,7 +729,7 @@ canvas {
 
 .jump-btn {
     position: fixed;
-    bottom: 20px;
+    bottom: 110px;
     right: 20px;
     width: 88px;
     height: 88px;
@@ -748,7 +748,7 @@ canvas {
 .attack-btn {
     position: fixed;
     bottom: 20px;
-    right: 120px;
+    right: 20px;
     width: 88px;
     height: 88px;
     background: rgba(255, 204, 0, 0.65);
