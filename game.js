@@ -674,13 +674,24 @@ function loadTouchSettings() {
         TouchSettings.attackBtn.y = clamp(TouchSettings.attackBtn.y, window.innerHeight - TouchSettings.attackBtn.size);
     } else {
         // Set defaults based on current window
+        const margin = 20;
+        const jumpSize = 85;
+        const attackSize = 85;
         TouchSettings = {
             jumpSize: 60,
             attackSize: 60,
-            leftBtn: { x: 20, y: window.innerHeight - 120, size: 60 },
+            leftBtn: { x: margin, y: window.innerHeight - 120, size: 60 },
             rightBtn: { x: 90, y: window.innerHeight - 120, size: 60 },
-            jumpBtn: { x: window.innerWidth - 150, y: window.innerHeight - 150, size: 85 },
-            attackBtn: { x: window.innerWidth - 80, y: window.innerHeight - 90, size: 85 }
+            jumpBtn: {
+                x: window.innerWidth - jumpSize - margin,
+                y: window.innerHeight - jumpSize - attackSize - 2 * margin,
+                size: jumpSize
+            },
+            attackBtn: {
+                x: window.innerWidth - attackSize - margin,
+                y: window.innerHeight - attackSize - margin,
+                size: attackSize
+            }
         };
     }
     applyTouchSettings();
