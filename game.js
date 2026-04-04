@@ -708,7 +708,7 @@ function loadTouchSettings() {
         if (!TouchSettings.rightBtn) TouchSettings.rightBtn = { x: 90, y: window.innerHeight - 120, size: 60 };
         if (!TouchSettings.jumpBtn) TouchSettings.jumpBtn = { x: window.innerWidth - 85 - 20, y: window.innerHeight - 85 - 85 - 40, size: 85 };
         if (!TouchSettings.attackBtn) TouchSettings.attackBtn = { x: window.innerWidth - 85 - 20, y: window.innerHeight - 85 - 20, size: 85 };
-        if (!TouchSettings.healthStatus) TouchSettings.healthStatus = { x: window.innerWidth - 260, y: 20, width: 260, height: 60 };
+        if (!TouchSettings.healthStatus) TouchSettings.healthStatus = { x: window.innerWidth - 325, y: 20, width: 260, height: 60 };
         // Clamp positions to current screen size
         const clamp = (val, max) => Math.max(0, Math.min(max, val));
         TouchSettings.leftBtn.x = clamp(TouchSettings.leftBtn.x, window.innerWidth - TouchSettings.leftBtn.size);
@@ -719,8 +719,13 @@ function loadTouchSettings() {
         TouchSettings.jumpBtn.y = clamp(TouchSettings.jumpBtn.y, window.innerHeight - TouchSettings.jumpBtn.size);
         TouchSettings.attackBtn.x = clamp(TouchSettings.attackBtn.x, window.innerWidth - TouchSettings.attackBtn.size);
         TouchSettings.attackBtn.y = clamp(TouchSettings.attackBtn.y, window.innerHeight - TouchSettings.attackBtn.size);
+        const healthLegacy = !TouchSettings.healthStatus.width || !TouchSettings.healthStatus.height;
         if (!TouchSettings.healthStatus.width) TouchSettings.healthStatus.width = 260;
         if (!TouchSettings.healthStatus.height) TouchSettings.healthStatus.height = 60;
+        if (healthLegacy || typeof TouchSettings.healthStatus.x !== 'number') {
+            TouchSettings.healthStatus.x = window.innerWidth - TouchSettings.healthStatus.width - 20;
+            TouchSettings.healthStatus.y = 20;
+        }
         TouchSettings.healthStatus.x = clamp(TouchSettings.healthStatus.x, window.innerWidth - TouchSettings.healthStatus.width);
         TouchSettings.healthStatus.y = clamp(TouchSettings.healthStatus.y, window.innerHeight - TouchSettings.healthStatus.height);
         // Ensure sizes are set with defaults
@@ -749,7 +754,7 @@ function loadTouchSettings() {
                 size: attackSize
             },
             healthStatus: {
-                x: window.innerWidth - 260,
+                x: window.innerWidth - 325,
                 y: 20,
                 width: 260,
                 height: 60
