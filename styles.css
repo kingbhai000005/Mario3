@@ -503,6 +503,22 @@ canvas {
     box-shadow: 0 0 15px var(--neon-cyan);
 }
 
+#clearMusicBtn {
+    transition: 0.3s ease;
+    font-weight: bold;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#clearMusicBtn:hover {
+    background: rgba(255, 0, 0, 0.4) !important;
+    border-color: #ff6666 !important;
+    color: #ff6666 !important;
+    transform: scale(1.1);
+    box-shadow: 0 0 10px rgba(255, 0, 0, 0.3);
+}
+
 .hero-power {
     font-size: 12px;
     color: #d8edff;

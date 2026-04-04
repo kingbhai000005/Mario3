@@ -230,6 +230,37 @@ function saveHiScore() {
    ============================================ */
 function createPlayer() {
     const hero = HEROES.find(h => h.name === GameState.selectedHero);
+    
+    // Set health and shield based on hero
+    let health = 5; // default
+    let shield = 0; // default
+    
+    if (hero.name === 'Classic') {
+        health = 3;
+        shield = 0;
+    } else if (hero.name === 'Ninja') {
+        health = 4;
+        shield = 0;
+    } else if (hero.name === 'Gold') {
+        health = 5;
+        shield = 0;
+    } else if (hero.name === 'Diamond') {
+        health = 5;
+        shield = 0;
+    } else if (hero.name === 'Ice') {
+        health = 5;
+        shield = 2; // Ice keeps shield for special ability
+    } else if (hero.name === 'Fire') {
+        health = 5;
+        shield = 2; // Fire keeps shield
+    } else if (hero.name === 'Machine') {
+        health = 5;
+        shield = 2; // Machine keeps shield
+    } else if (hero.name === 'Alien') {
+        health = 5;
+        shield = 2; // Alien keeps shield
+    }
+    
     return {
         x: 100,
         y: 100,
@@ -252,7 +283,8 @@ function createPlayer() {
         slashAngle: 0,
         atkCooldown: 0,
         gunFlash: 0,
-        shield: (['Ice', 'Fire', 'Machine', 'Alien'].includes(hero.name)) ? 1 : 0, // All late heroes now have shield
+        health: health,
+        shield: shield,
         invincibleTime: 0, // For shield invincibility after break
         isFiring: false // For continuous fire
     };
@@ -919,6 +951,17 @@ function openMusicSettings() {
     if (modal) {
         modal.classList.remove('hidden');
         const bgInput = document.getElementById('bgMusicInput');
+        const clearBtn = document.getElementById('clearMusicBtn');
+        
+        // Function to update clear button visibility
+        const updateClearButton = () => {
+            if (bgInput && bgInput.files && bgInput.files.length > 0) {
+                clearBtn.style.display = 'inline-block';
+            } else {
+                clearBtn.style.display = 'none';
+            }
+        };
+        
         if (bgInput) {
             bgInput.onchange = (e) => {
                 const file = e.target.files[0];
@@ -930,15 +973,32 @@ function openMusicSettings() {
                     // Perhaps save for session
                     sessionStorage.setItem('bgMusicURL', url);
                 }
+                updateClearButton();
             };
+            
+            // Clear button functionality
+            if (clearBtn) {
+                clearBtn.onclick = () => {
+                    bgInput.value = '';
+                    const audio = document.getElementById('bgAudio');
+                    audio.src = '';
+                    audio.pause();
+                    sessionStorage.removeItem('bgMusicURL');
+                    updateClearButton();
+                };
+            }
         }
-        // Load if saved
+        
+        // Load if saved and update button visibility
         const savedURL = sessionStorage.getItem('bgMusicURL');
         if (savedURL) {
             const audio = document.getElementById('bgAudio');
             audio.src = savedURL;
             audio.play();
         }
+        
+        // Initial button visibility check
+        updateClearButton();
     }
 }
 
@@ -1046,6 +1106,9 @@ function resetGame() {
     GameState.enemies = [];
     GameState.bullets = [];
     GameState.enemyProjectiles = [];
+
+    // Initialize health UI
+    updateHealthUI();
 
     // Ensure all 5 enemy types appear at least once in each run
     spawnInitialEnemies();
@@ -1307,12 +1370,31 @@ function updateEnemyProjectiles(dt) {
             GameState.player.y < ep.y + ep.h && GameState.player.y + GameState.player.h > ep.y) {
             GameState.enemyProjectiles.splice(epi, 1);
 
-            if ((['Ice', 'Fire', 'Machine', 'Alien'].includes(GameState.player.name)) && GameState.player.shield > 0) {
-                GameState.player.shield = 0;
-                GameState.player.invincibleTime = 2;
-                GameState.player.dy = -400;
-            } else if (GameState.player.invincibleTime <= 0) {
-                endGame();
+            // Damage system: Shield takes damage first, then health
+            if (GameState.player.invincibleTime <= 0) {
+                if (GameState.player.shield > 0) {
+                    GameState.player.shield--;
+                    
+                    // Special invincibility times for certain heroes
+                    if (GameState.player.name === 'Ice') {
+                        GameState.player.invincibleTime = 2; // Ice gets 2s invincibility when shield breaks
+                    } else {
+                        GameState.player.invincibleTime = 1; // Normal heroes get 1s
+                    }
+                    
+                    GameState.player.dy = -300; // Bounce back
+                    updateHealthUI(); // Update the UI
+                } else if (GameState.player.health > 0) {
+                    GameState.player.health--;
+                    GameState.player.invincibleTime = 1; // Brief invincibility after health damage
+                    GameState.player.dy = -300; // Bounce back
+                    updateHealthUI(); // Update the UI
+                    
+                    // Game over if health reaches 0
+                    if (GameState.player.health <= 0) {
+                        endGame();
+                    }
+                }
             }
         }
     });
@@ -1346,13 +1428,31 @@ function updateEnemies(dt) {
                 GameState.player.dy = -600;
                 GameState.score += CONFIG.SCORE.STOMP_KILL;
             } else {
-                // All hero shields protection (Ice, Fire, Machine, Alien)
-                if ((['Ice', 'Fire', 'Machine', 'Alien'].includes(GameState.player.name)) && GameState.player.shield > 0) {
-                    GameState.player.shield = 0;
-                    GameState.player.invincibleTime = 2;
-                    GameState.player.dy = -400; // Bounce back
-                } else if (GameState.player.invincibleTime <= 0) {
-                    endGame();
+                // Damage system: Shield takes damage first, then health
+                if (GameState.player.invincibleTime <= 0) {
+                    if (GameState.player.shield > 0) {
+                        GameState.player.shield--;
+                        
+                        // Special invincibility times for certain heroes
+                        if (GameState.player.name === 'Ice') {
+                            GameState.player.invincibleTime = 2; // Ice gets 2s invincibility when shield breaks
+                        } else {
+                            GameState.player.invincibleTime = 1; // Normal heroes get 1s
+                        }
+                        
+                        GameState.player.dy = -300; // Bounce back
+                        updateHealthUI(); // Update the UI
+                    } else if (GameState.player.health > 0) {
+                        GameState.player.health--;
+                        GameState.player.invincibleTime = 1; // Brief invincibility after health damage
+                        GameState.player.dy = -300; // Bounce back
+                        updateHealthUI(); // Update the UI
+                        
+                        // Game over if health reaches 0
+                        if (GameState.player.health <= 0) {
+                            endGame();
+                        }
+                    }
                 }
             }
         }
@@ -1446,6 +1546,27 @@ function updateScore(dt) {
         GameState.maxDist = GameState.player.x;
     }
     document.getElementById('scoreVal').innerText = Math.floor(GameState.score);
+}
+
+function updateHealthUI() {
+    const healthDisplay = document.getElementById('healthDisplay');
+    if (!healthDisplay || !GameState.player) return;
+    
+    let hearts = '';
+    let shields = '';
+    
+    // Add heart icons for health (red hearts)
+    for (let i = 0; i < GameState.player.health; i++) {
+        hearts += '❤️';
+    }
+    
+    // Add shield icons for shield (blue shields)
+    for (let i = 0; i < GameState.player.shield; i++) {
+        shields += '🛡️';
+    }
+    
+    // Display format: HEARTS SHIELDS
+    healthDisplay.innerHTML = hearts + ' ' + shields;
 }
 
 function updateCamera() {
@@ -1733,6 +1854,13 @@ function drawPlayer() {
     GameState.ctx.translate(GameState.player.x + GameState.player.w / 2, GameState.player.y + GameState.player.h);
     GameState.ctx.scale(2 - GameState.player.stretch, GameState.player.stretch);
 
+    // Invincibility visual effect - flashing
+    if (GameState.player.invincibleTime > 0) {
+        const flashSpeed = 10;
+        const flashOpacity = Math.sin(GameState.player.invincibleTime * flashSpeed) * 0.3 + 0.7;
+        GameState.ctx.globalAlpha = flashOpacity;
+    }
+
     if (GameState.isRGB) {
         GameState.ctx.shadowBlur = 20;
         GameState.ctx.shadowColor = `hsl(${GameState.rgbHue}, 100%, 50%)`;
@@ -1795,6 +1923,11 @@ function drawPlayer() {
 
     GameState.ctx.fillStyle = '#000';
     GameState.ctx.fillRect(GameState.player.dir === 1 ? 5 : -11, -GameState.player.h + 15, 6, 6);
+
+    // Reset invincibility alpha
+    if (GameState.player.invincibleTime > 0) {
+        GameState.ctx.globalAlpha = 1;
+    }
 
     GameState.ctx.restore();
 }

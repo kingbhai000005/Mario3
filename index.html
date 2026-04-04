@@ -99,7 +99,11 @@
             <div style="color:#fff; font-size:12px; line-height:1.8;">
                 <p>Upload custom background music:</p>
                 <div style="margin-top:10px;">
-                    <label>Background Music: <input type="file" id="bgMusicInput" accept="audio/*"></label><br>
+                    <label style="display: flex; align-items: center; gap: 10px;">
+                        Background Music: 
+                        <input type="file" id="bgMusicInput" accept="audio/*" style="flex: 1;">
+                        <button id="clearMusicBtn" style="display: none; background: rgba(255, 0, 0, 0.2); border: 1px solid #ff4444; color: #ff4444; border-radius: 50%; width: 24px; height: 24px; font-size: 14px; cursor: pointer; line-height: 1;" title="Clear selected music">×</button>
+                    </label><br>
                 </div>
             </div>
             <button id="closeMusicBtn" class="abort-btn" onclick="closeMusicSettings()">CLOSE</button>
@@ -124,7 +128,7 @@
 
 <!-- GAME CONTAINER -->
 <div id="gameContainer">
-    <div id="ui">SCORE: <span id="scoreVal">0</span> | <span id="curWep">None</span></div>
+    <div id="ui">SCORE: <span id="scoreVal">0</span> | <span id="curWep">None</span> | <span id="healthDisplay"></span></div>
     <div id="menu">
         <h1 class="fail-text">MISSION FAILED</h1>
         <p id="finalScore">SCORE: 0</p>
