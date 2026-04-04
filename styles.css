@@ -133,7 +133,25 @@ canvas {
     gap: 15px;
 }
 
-.rgb-active #ui {
+#healthStatus {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    color: white;
+    padding: 12px 22px;
+    background: transparent;
+    backdrop-filter: none;
+    border-radius: 0;
+    border: none;
+    font-size: 18px;
+    z-index: 10;
+    display: none;
+    gap: 12px;
+    align-items: center;
+}
+
+.rgb-active #ui,
+.rgb-active #healthStatus {
     border-color: #00ffff;
     box-shadow: 0 0 15px #00ffff;
 }
@@ -222,6 +240,37 @@ canvas {
     background: var(--neon-cyan);
     color: #000;
     box-shadow: 0 0 15px var(--neon-cyan);
+}
+
+#persistentUI {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    z-index: 1000;
+    pointer-events: auto;
+}
+
+.persistent-fullscreen-btn {
+    background: rgba(0, 0, 0, 0.7);
+    border: 2px solid var(--neon-cyan);
+    color: var(--neon-cyan);
+    font-size: 18px;
+    width: 45px;
+    height: 45px;
+    border-radius: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: 0.3s;
+    backdrop-filter: blur(5px);
+}
+
+.persistent-fullscreen-btn:hover {
+    background: var(--neon-cyan);
+    color: #000;
+    box-shadow: 0 0 20px var(--neon-cyan);
+    transform: scale(1.05);
 }
 
 .stats-bar {
@@ -765,19 +814,52 @@ canvas {
 
 .cust-btn {
     position: absolute;
-    width: 60px;
-    height: 60px;
-    background: rgba(0, 242, 255, 0.15);
-    border: 2px solid var(--neon-cyan);
-    border-radius: 12px;
+    width: 65px;
+    height: 65px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 18px;
     display: flex;
     justify-content: center;
     align-items: center;
+    font-size: 32px;
     color: white;
+    border: 1px solid rgba(255, 255, 255, 0.18);
     user-select: none;
     touch-action: none;
     cursor: grab;
     z-index: 100;
+}
+
+#custJump,
+#custAttack {
+    width: 88px;
+    height: 88px;
+    border-radius: 50%;
+    border-width: 3px;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+#custJump {
+    background: rgba(255, 50, 50, 0.55);
+    border-color: rgba(255, 255, 255, 0.85);
+}
+
+#custAttack {
+    background: rgba(255, 204, 0, 0.65);
+    border-color: rgba(255, 255, 255, 0.85);
+}
+
+#custHealth {
+    width: 320px;
+    height: 70px;
+    border-radius: 0;
+    background: transparent;
+    border: none;
+    font-size: 18px;
+    padding: 0 16px;
+    white-space: nowrap;
+    justify-content: flex-start;
 }
 
 .cust-btn:active {

@@ -44,9 +44,9 @@ const HEROES = [
     { name: 'Ninja', color: '#333', overall: '#111', req: 4000, weapon: 'Katana', power: 'Swift katana strikes', icon: '🥷' },
     { name: 'Gold', color: '#ffd700', overall: '#ff8c00', req: 8000, weapon: 'Pistol', power: 'Accurate pistol shots', icon: '🔫' },
     { name: 'Diamond', color: '#b9f2ff', overall: '#00d4ff', req: 12000, weapon: 'Assault Rifle', power: 'Double pistol fire rate', icon: '🔧' },
-    { name: 'Ice', color: '#ffffff', overall: '#a5f3fc', req: 20000, weapon: 'Ice Powers', power: 'Ice shield breaks for 2s invincibility', icon: '❄️' },
+    { name: 'Machine', color: '#000000', overall: '#333333', req: 20000, weapon: 'M416', power: 'Machine gun fire rate with black armor', icon: '🔫' },
     { name: 'Fire', color: '#ff4500', overall: '#8b0000', req: 25000, weapon: 'Fire Powers', power: 'Shoots fireballs from both sides simultaneously', icon: '🔥' },
-    { name: 'Machine', color: '#000000', overall: '#333333', req: 30000, weapon: 'M416', power: 'Machine gun fire rate with black armor', icon: '🔫' },
+    { name: 'Ice', color: '#ffffff', overall: '#a5f3fc', req: 30000, weapon: 'Ice Powers', power: 'Ice shield breaks for 2s invincibility', icon: '❄️' },
     { name: 'Alien', color: '#00ff00', overall: '#006400', req: 35000, weapon: 'Triple Barrel Gun', power: 'Shoots in 3 directions: straight, up slanted, down slanted', icon: '👽' }
 ];
 
@@ -662,6 +662,8 @@ function toggleFullscreen() {
     document.addEventListener('mozfullscreenchange', handleFullscreenChange);
     document.addEventListener('MSFullscreenChange', handleFullscreenChange);
 
+    const menuBtn = document.getElementById('fullscreenMenuBtn');
+
     if (!document.fullscreenElement) {
         // Enter fullscreen
         if (elem.requestFullscreen) {
@@ -674,6 +676,7 @@ function toggleFullscreen() {
             elem.msRequestFullscreen();
         }
         if (btn) btn.innerText = '⛶';
+        if (menuBtn) menuBtn.innerText = '⛶';
     } else {
         // Exit fullscreen
         if (document.exitFullscreen) {
@@ -686,6 +689,7 @@ function toggleFullscreen() {
             document.msExitFullscreen();
         }
         if (btn) btn.innerText = '⛶';
+        if (menuBtn) menuBtn.innerText = '⛶';
     }
 }
 
@@ -699,6 +703,12 @@ function loadTouchSettings() {
     const saved = localStorage.getItem('marioTouchSettings');
     if (saved) {
         TouchSettings = JSON.parse(saved);
+        // Ensure all settings exist with defaults
+        if (!TouchSettings.leftBtn) TouchSettings.leftBtn = { x: 20, y: window.innerHeight - 120, size: 60 };
+        if (!TouchSettings.rightBtn) TouchSettings.rightBtn = { x: 90, y: window.innerHeight - 120, size: 60 };
+        if (!TouchSettings.jumpBtn) TouchSettings.jumpBtn = { x: window.innerWidth - 85 - 20, y: window.innerHeight - 85 - 85 - 40, size: 85 };
+        if (!TouchSettings.attackBtn) TouchSettings.attackBtn = { x: window.innerWidth - 85 - 20, y: window.innerHeight - 85 - 20, size: 85 };
+        if (!TouchSettings.healthStatus) TouchSettings.healthStatus = { x: window.innerWidth - 260, y: 20, width: 260, height: 60 };
         // Clamp positions to current screen size
         const clamp = (val, max) => Math.max(0, Math.min(max, val));
         TouchSettings.leftBtn.x = clamp(TouchSettings.leftBtn.x, window.innerWidth - TouchSettings.leftBtn.size);
@@ -709,6 +719,15 @@ function loadTouchSettings() {
         TouchSettings.jumpBtn.y = clamp(TouchSettings.jumpBtn.y, window.innerHeight - TouchSettings.jumpBtn.size);
         TouchSettings.attackBtn.x = clamp(TouchSettings.attackBtn.x, window.innerWidth - TouchSettings.attackBtn.size);
         TouchSettings.attackBtn.y = clamp(TouchSettings.attackBtn.y, window.innerHeight - TouchSettings.attackBtn.size);
+        if (!TouchSettings.healthStatus.width) TouchSettings.healthStatus.width = 260;
+        if (!TouchSettings.healthStatus.height) TouchSettings.healthStatus.height = 60;
+        TouchSettings.healthStatus.x = clamp(TouchSettings.healthStatus.x, window.innerWidth - TouchSettings.healthStatus.width);
+        TouchSettings.healthStatus.y = clamp(TouchSettings.healthStatus.y, window.innerHeight - TouchSettings.healthStatus.height);
+        // Ensure sizes are set with defaults
+        TouchSettings.leftBtn.size = TouchSettings.leftBtn.size || 60;
+        TouchSettings.rightBtn.size = TouchSettings.rightBtn.size || 60;
+        TouchSettings.jumpBtn.size = TouchSettings.jumpBtn.size || 85;
+        TouchSettings.attackBtn.size = TouchSettings.attackBtn.size || 85;
     } else {
         // Set defaults based on current window
         const margin = 20;
@@ -728,6 +747,12 @@ function loadTouchSettings() {
                 x: window.innerWidth - attackSize - margin,
                 y: window.innerHeight - attackSize - margin,
                 size: attackSize
+            },
+            healthStatus: {
+                x: window.innerWidth - 260,
+                y: 20,
+                width: 260,
+                height: 60
             }
         };
     }
@@ -780,21 +805,29 @@ function openButtonCustomizer() {
         { id: 'custLeft', key: 'leftBtn', label: '◀' },
         { id: 'custRight', key: 'rightBtn', label: '▶' },
         { id: 'custJump', key: 'jumpBtn', label: 'JUMP' },
-        { id: 'custAttack', key: 'attackBtn', label: 'STRIKE' }
+        { id: 'custAttack', key: 'attackBtn', label: 'STRIKE' },
+        { id: 'custHealth', key: 'healthStatus', label: 'HEALTH' }
     ];
 
     buttons.forEach(btn => {
         const el = document.getElementById(btn.id);
         if (!el) return;
         const settings = customizerSettings[btn.key];
-        // Clamp to current screen
-        const clampedX = Math.max(0, Math.min(areaWidth - settings.size, settings.x));
-        const clampedY = Math.max(0, Math.min(areaHeight - settings.size, settings.y));
+        if (!settings) return;
+
+        const elWidth = btn.key === 'healthStatus' ? settings.width : settings.size;
+        const elHeight = btn.key === 'healthStatus' ? settings.height : settings.size;
+        const clampedX = Math.max(0, Math.min(areaWidth - elWidth, settings.x));
+        const clampedY = Math.max(0, Math.min(areaHeight - elHeight, settings.y));
         el.style.left = clampedX + 'px';
         el.style.top = clampedY + 'px';
-        el.style.width = settings.size + 'px';
-        el.style.height = settings.size + 'px';
-        el.textContent = btn.label;
+        el.style.width = elWidth + 'px';
+        el.style.height = elHeight + 'px';
+        if (btn.key === 'healthStatus') {
+            el.innerHTML = '❤️❤️❤️❤️❤️ 🛡️🛡️';
+        } else {
+            el.textContent = btn.label;
+        }
 
         let dragging = false;
         let offsetX = 0;
@@ -888,10 +921,18 @@ function applyTouchSettings() {
         attackBtn.style.width = `${TouchSettings.attackBtn.size}px`;
         attackBtn.style.height = `${TouchSettings.attackBtn.size}px`;
     }
+    const healthStatus = document.getElementById('healthStatus');
+    if (healthStatus) {
+        healthStatus.style.position = 'absolute';
+        healthStatus.style.left = `${TouchSettings.healthStatus.x}px`;
+        healthStatus.style.top = `${TouchSettings.healthStatus.y}px`;
+        healthStatus.style.width = `${TouchSettings.healthStatus.width}px`;
+        healthStatus.style.height = `${TouchSettings.healthStatus.height}px`;
+    }
 }
 
 function setupControlDrag() {
-    const dragItems = ['leftBtn', 'rightBtn', 'jumpBtn', 'attackBtn'];
+    const dragItems = ['leftBtn', 'rightBtn', 'jumpBtn', 'attackBtn', 'healthStatus'];
     dragItems.forEach(id => {
         const el = document.getElementById(id);
         if (!el) return;
@@ -950,6 +991,7 @@ function openTouchSettings() {
                 openMusicSettings();
             };
         }
+
     }
 }
 
@@ -1113,6 +1155,9 @@ function updatePreview() {
    ============================================ */
 function initGame() {
     document.getElementById('startMenu').style.display = 'none';
+    document.getElementById('persistentUI').style.display = 'block';
+    const healthStatus = document.getElementById('healthStatus');
+    if (healthStatus) healthStatus.style.display = 'flex';
     
     if (!GameState.isRGB) {
         const theme = THEMES.find(t => t.name === GameState.selectedTheme);
@@ -1624,24 +1669,21 @@ function updateScore(dt) {
 }
 
 function updateHealthUI() {
-    const healthDisplay = document.getElementById('healthDisplay');
-    if (!healthDisplay || !GameState.player) return;
+    const healthStatus = document.getElementById('healthStatus');
+    if (!healthStatus || !GameState.player) return;
     
     let hearts = '';
     let shields = '';
     
-    // Add heart icons for health (red hearts)
     for (let i = 0; i < GameState.player.health; i++) {
         hearts += '❤️';
     }
     
-    // Add shield icons for shield (blue shields)
     for (let i = 0; i < GameState.player.shield; i++) {
         shields += '🛡️';
     }
     
-    // Display format: HEARTS SHIELDS
-    healthDisplay.innerHTML = hearts + ' ' + shields;
+    healthStatus.innerHTML = hearts + (shields ? ' ' + shields : '');
 }
 
 function updateCamera() {
@@ -1664,6 +1706,9 @@ function returnToMainMenu() {
     GameState.gameActive = false;
     document.getElementById('menu').style.display = 'none';
     document.getElementById('startMenu').style.display = 'flex';
+    document.getElementById('persistentUI').style.display = 'none';
+    const healthStatus = document.getElementById('healthStatus');
+    if (healthStatus) healthStatus.style.display = 'none';
 
     if (!GameState.testMode) {
         GameState.hiScore = parseInt(localStorage.getItem('marioHiScore')) || 0;
@@ -2491,6 +2536,9 @@ window.addEventListener('orientationchange', updateOrientationState);
 window.addEventListener('DOMContentLoaded', () => {
     GameState.canvas = document.getElementById('game');
     GameState.ctx = GameState.canvas.getContext('2d');
+    
+    // Hide persistent UI initially
+    document.getElementById('persistentUI').style.display = 'none';
     
     loadHiScore();
     renderMenus();
