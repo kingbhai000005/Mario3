@@ -70,10 +70,12 @@
 
     <!-- HERO SELECTION OVERLAY (MODERN) -->
     <div id="heroSelectionOverlay" class="hero-selection-overlay hidden">       
-        <div class="selection-modal">
-            <h2 class="modal-title">CHOOSE YOUR HERO</h2>
-            <div id="heroSelectionGrid" class="grid-list"></div>
-            <button id="closeHeroSelectionBtn" class="abort-btn">ABORT</button> 
+        <div class="hero-modal-content">
+            <div class="modal-header">
+                <h2>CHOOSE YOUR HERO</h2>
+                <button id="closeHeroSelectionBtn" class="modal-close-btn" onclick="closeHeroSelection()">✕</button>
+            </div>
+            <div id="heroSelectionGrid" class="hero-info-container" style="display: block !important;"></div>
         </div>
     </div>
 

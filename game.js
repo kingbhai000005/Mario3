@@ -421,14 +421,21 @@ function renderHeroSelection() {
     HEROES.forEach(h => {
         const isLocked = GameState.hiScore < h.req;
         const card = document.createElement('div');
-        card.className = `card ${isLocked ? 'locked' : ''} ${GameState.selectedHero === h.name ? 'selected' : ''}`;
-        card.style.width = '160px';
-        card.style.minHeight = '80px';
-        card.style.display = 'flex';
-        card.style.flexDirection = 'column';
-        card.style.justifyContent = 'space-between';
-        card.style.padding = '10px';
-        card.innerHTML = `<div style="display:flex; align-items:center; gap:8px;"><div style="font-size:24px; line-height:1;">${h.icon}</div><div style="flex:1;"><div style="font-size:12px; font-weight:bold; margin-bottom:2px;">${h.name}</div><small style="color:#ccc; font-size:10px;">${h.power}</small></div></div><div style="font-size:10px;color:#bff; margin-top:4px;">${isLocked ? `LOCKED 🔒 (Req: ${h.req})` : 'Ready'}</div>`;
+        card.className = `enemy-card ${isLocked ? 'locked' : ''} ${GameState.selectedHero === h.name ? 'selected' : ''}`;
+        card.style.marginBottom = '12px';
+        card.style.opacity = isLocked ? '0.6' : '1';
+        card.style.cursor = isLocked ? 'not-allowed' : 'pointer';
+        card.innerHTML = `
+            <div style="display:flex; align-items:center; gap:12px; text-align:left;">
+                <div style="font-size:32px; line-height:1; flex-shrink:0;">${h.icon}</div>
+                <div style="flex:1;">
+                    <div style="font-size:14px; font-weight:bold; color:#00ffff; margin-bottom:4px;">${h.name}</div>
+                    <div style="font-size:11px; color:#a7eeff; margin-bottom:6px;">${h.power}</div>
+                    <div style="font-size:10px; color:#7af3ff;">Weapon: <strong>${h.weapon}</strong></div>
+                    <div style="font-size:9px; color:#5fa0cc; margin-top:4px;">${isLocked ? `LOCKED 🔒 (Score Req: ${h.req})` : '✓ UNLOCKED'}</div>
+                </div>
+            </div>
+        `;
 
         if (!isLocked) {
             card.onclick = () => {
