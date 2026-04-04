@@ -422,7 +422,6 @@ function renderHeroSelection() {
         const isLocked = GameState.hiScore < h.req;
         const card = document.createElement('div');
         card.className = `enemy-card ${isLocked ? 'locked' : ''} ${GameState.selectedHero === h.name ? 'selected' : ''}`;
-        card.style.marginBottom = '12px';
         card.style.opacity = isLocked ? '0.6' : '1';
         card.style.cursor = isLocked ? 'not-allowed' : 'pointer';
         card.innerHTML = `
