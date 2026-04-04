@@ -624,7 +624,44 @@ function toggleTestMode() {
 function toggleFullscreen() {
     const elem = document.documentElement;
     const btn = document.getElementById('fullscreenBtn');
-    
+
+    // Function to reposition buttons based on current screen size
+    const repositionButtons = () => {
+        if (TouchSettings) {
+            // Update button positions based on new screen dimensions
+            const margin = 20;
+            const jumpSize = TouchSettings.jumpBtn.size || 85;
+            const attackSize = TouchSettings.attackBtn.size || 85;
+
+            TouchSettings.leftBtn.x = margin;
+            TouchSettings.leftBtn.y = window.innerHeight - 120;
+
+            TouchSettings.rightBtn.x = 90;
+            TouchSettings.rightBtn.y = window.innerHeight - 120;
+
+            TouchSettings.jumpBtn.x = window.innerWidth - jumpSize - margin;
+            TouchSettings.jumpBtn.y = window.innerHeight - jumpSize - attackSize - 2 * margin;
+
+            TouchSettings.attackBtn.x = window.innerWidth - attackSize - margin;
+            TouchSettings.attackBtn.y = window.innerHeight - attackSize - margin;
+
+            // Apply the new positions
+            applyTouchSettings();
+            saveTouchSettings();
+        }
+    };
+
+    // Listen for fullscreen changes and reposition buttons
+    const handleFullscreenChange = () => {
+        setTimeout(repositionButtons, 100); // Small delay to ensure dimensions are updated
+    };
+
+    // Add event listeners for fullscreen changes
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+
     if (!document.fullscreenElement) {
         // Enter fullscreen
         if (elem.requestFullscreen) {
@@ -695,6 +732,33 @@ function loadTouchSettings() {
         };
     }
     applyTouchSettings();
+
+    // Add window resize listener to reposition buttons on screen size changes
+    window.addEventListener('resize', () => {
+        if (TouchSettings && GameState.gameActive) {
+            // Only reposition if game is active to avoid interfering with menus
+            setTimeout(() => {
+                const margin = 20;
+                const jumpSize = TouchSettings.jumpBtn.size || 85;
+                const attackSize = TouchSettings.attackBtn.size || 85;
+
+                TouchSettings.leftBtn.x = margin;
+                TouchSettings.leftBtn.y = window.innerHeight - 120;
+
+                TouchSettings.rightBtn.x = 90;
+                TouchSettings.rightBtn.y = window.innerHeight - 120;
+
+                TouchSettings.jumpBtn.x = window.innerWidth - jumpSize - margin;
+                TouchSettings.jumpBtn.y = window.innerHeight - jumpSize - attackSize - 2 * margin;
+
+                TouchSettings.attackBtn.x = window.innerWidth - attackSize - margin;
+                TouchSettings.attackBtn.y = window.innerHeight - attackSize - margin;
+
+                applyTouchSettings();
+                saveTouchSettings();
+            }, 100);
+        }
+    });
 }
 
 function saveTouchSettings() {
